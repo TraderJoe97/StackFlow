@@ -41,8 +41,26 @@ namespace StackFlow.Controllers
                 return View();
             }
 
+
+            var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "Developer");
+
+            if (defaultRole == null)
+            {
+                ModelState.AddModelError(string.Empty, "Registration failed: Default role not found. Please contact support.");
+                return View();
+            }
+
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
-            var user = new User { Username = username, Email = email, PasswordHash = hashedPassword };
+            var user = new User
+            {
+                Username = username,
+                Email = email,
+                PasswordHash = hashedPassword,
+                CreatedAt = DateTime.UtcNow, // Ensure CreatedAt is set
+                Role = defaultRole // Assign the fetched Role object
+            };
+
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 

@@ -29,6 +29,6 @@ namespace StackFlow.Models
 
 
         [ForeignKey("role_Id")]
-        public Role Role { get; set; }
+        public Role Role { get; set; } 
     }
 }
