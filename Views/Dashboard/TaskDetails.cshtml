@@ -1,0 +1,119 @@
+﻿@model StackFlow.ViewModels.TaskViewModel
+
+@{
+    ViewData["Title"] = Model.TaskTitle;
+}
+
+<div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="card-title fw-bold text-primary mb-0">@Model.TaskTitle</h2>
+        <a asp-action="EditTask" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill">
+            <i class="bi bi-pencil-square me-2"></i>Edit Task
+        </a>
+    </div>
+    <hr />
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h5 class="fw-bold mb-3">Task Details</h5>
+            <dl class="row">
+                <dt class="col-sm-4 text-muted">Description:</dt>
+                <dd class="col-sm-8">@Model.TaskDescription</dd>
+
+                <dt class="col-sm-4 text-muted">Project:</dt>
+                <dd class="col-sm-8"><span class="badge bg-primary">@Model.ProjectName</span></dd>
+
+                <dt class="col-sm-4 text-muted">Assigned To:</dt>
+                <dd class="col-sm-8">
+                    @if (!string.IsNullOrEmpty(Model.AssignedToUsername))
+                    {
+                        <span class="badge bg-info text-dark"><i class="bi bi-person-fill me-1"></i> @Model.AssignedToUsername</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Unassigned</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-4 text-muted">Status:</dt>
+                <dd class="col-sm-8">
+                    <span class="badge @(Model.TaskStatus == "To Do" ? "bg-secondary" : Model.TaskStatus == "In Progress" ? "bg-warning text-dark" : "bg-success")">
+                        @Model.TaskStatus
+                    </span>
+                </dd>
+
+                <dt class="col-sm-4 text-muted">Priority:</dt>
+                <dd class="col-sm-8">
+                    <span class="badge @(Model.TaskPriority == "High" ? "bg-danger" : Model.TaskPriority == "Medium" ? "bg-warning text-dark" : "bg-info")">
+                        @Model.TaskPriority
+                    </span>
+                </dd>
+
+                <dt class="col-sm-4 text-muted">Created By:</dt>
+                <dd class="col-sm-8"><i class="bi bi-person-fill me-1"></i> @Model.CreatedByUsername</dd>
+
+                <dt class="col-sm-4 text-muted">Created At:</dt>
+                <dd class="col-sm-8">@Model.TaskCreatedAt.ToShortDateString()</dd>
+
+                <dt class="col-sm-4 text-muted">Due Date:</dt>
+                <dd class="col-sm-8">@Model.TaskDueDate?.ToShortDateString()</dd>
+
+                @if (Model.TaskCompletedAt.HasValue)
+                {
+                    <dt class="col-sm-4 text-muted">Completed At:</dt>
+                    <dd class="col-sm-8">@Model.TaskCompletedAt?.ToShortDateString()</dd>
+                }
+            </dl>
+        </div>
+        <div class="col-md-6">
+            <h5 class="fw-bold mb-3">Comments (@Model.Comments.Count)</h5>
+            <div class="card bg-light border-0 rounded-3 p-3 mb-3" style="max-height: 400px; overflow-y: auto;">
+                @if (!Model.Comments.Any())
+                {
+                    <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
+                }
+                else
+                {
+                    <ul class="list-unstyled">
+                        @foreach (var comment in Model.Comments)
+                        {
+                            <li class="mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-person-circle me-2 text-muted"></i>
+                                    <strong class="text-primary">@comment.User.Username</strong>
+                                    <small class="text-muted ms-auto">@comment.CommentCreatedAt.ToShortDateString() @comment.CommentCreatedAt.ToShortTimeString()</small>
+                                </div>
+                                <p class="mb-0 ms-4">@comment.CommentText</p>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <h5 class="fw-bold mb-3">Add a Comment</h5>
+            <form asp-action="AddComment" method="post">
+                <input type="hidden" name="taskId" value="@Model.Id" />
+                <div class="mb-3">
+                    <textarea name="commentText" class="form-control rounded-3" rows="3" placeholder="Write your comment here..." required></textarea>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-info rounded-pill">
+                        <i class="bi bi-chat-dots-fill me-2"></i> Post Comment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+            <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

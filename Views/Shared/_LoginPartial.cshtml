@@ -1,0 +1,25 @@
+﻿@using Microsoft.AspNetCore.Identity // While Identity isn't directly used here, it's common for related partials.
+                                   // User.Identity is part of ASP.NET Core authentication.
+
+<ul class="navbar-nav">
+    @if (User.Identity.IsAuthenticated)
+    {
+        <li class="nav-item">
+            <a class="nav-link text-white" asp-area="" asp-controller="Profile" asp-action="Index" title="Manage">Hello @User.Identity.Name!</a>
+        </li>
+        <li class="nav-item">
+            <form class="form-inline" asp-controller="Account" asp-action="Logout" method="post">
+                <button type="submit" class="nav-link btn btn-link text-white">Logout</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link text-white" asp-controller="Account" asp-action="Register">Register</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white" asp-controller="Account" asp-action="Login">Login</a>
+        </li>
+    }
+</ul>

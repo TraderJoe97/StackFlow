@@ -1,0 +1,85 @@
+﻿@model StackFlow.Models.Project
+
+@{
+    ViewData["Title"] = "Create New Project";
+}
+
+<div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
+    <h2 class="card-title text-center mb-4 fw-bold text-success">Create New Project</h2>
+    <hr />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <form asp-action="CreateProject" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="ProjectName" class="form-label">Project Name</label>
+                    <input asp-for="ProjectName" class="form-control rounded-pill" />
+                    <span asp-validation-for="ProjectName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ProjectDescription" class="form-label">Description</label>
+                    <textarea asp-for="ProjectDescription" class="form-control rounded-4" rows="5"></textarea>
+                    <span asp-validation-for="ProjectDescription" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ProjectStartDate" class="form-label">Start Date</label>
+                        <input asp-for="ProjectStartDate" type="date" class="form-control rounded-pill" />
+                        <span asp-validation-for="ProjectStartDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ProjectEndDate" class="form-label">End Date</label>
+                        <input asp-for="ProjectEndDate" type="date" class="form-control rounded-pill" />
+                        <span asp-validation-for="ProjectEndDate" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ProjectStatus" class="form-label">Status</label>
+                    <select asp-for="ProjectStatus" class="form-control rounded-pill">
+                        <option value="Planning">Planning</option>
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Archived">Archived</option>
+                    </select>
+                    <span asp-validation-for="ProjectStatus" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-success btn-lg rounded-pill">
+                        <i class="bi bi-folder-plus me-2"></i> Create Project
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+                        <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

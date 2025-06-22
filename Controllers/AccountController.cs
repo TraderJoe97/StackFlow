@@ -101,7 +101,7 @@ namespace StackFlow.Controllers
             return RedirectToAction("Login");
         }
 
-        private async Task SignInUser(User user)
+        private async System.Threading.Tasks.Task SignInUser(User user)
         {
             var claims = new List<Claim>
             {

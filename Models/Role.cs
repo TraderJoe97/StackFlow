@@ -9,13 +9,14 @@ namespace StackFlow.Models
     {
         [Key]
         [Column("id")]
-        public int RoleId { get; set; }
+        public int RoleId { get; set; } // Changed to RoleId for consistency with User.RoleId
 
         [Required]
         [Column("role_name")]
-        public string Title { get; set; }
+        [StringLength(255)] // Max length from schema
+        public string Title { get; set; } // Changed to Title for clarity
 
-        [Column("description")]
+        [Column("description", TypeName = "text")] // Using TypeName for 'text'
         public string Description { get; set; }
 
         public ICollection<User> Users { get; set; }

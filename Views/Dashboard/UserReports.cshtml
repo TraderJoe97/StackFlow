@@ -1,0 +1,110 @@
+﻿@model IEnumerable<StackFlow.ViewModels.UserReportViewModel>
+
+@{
+    ViewData["Title"] = "User Reports";
+}
+
+<div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
+    <h2 class="card-title text-center mb-4 fw-bold text-info">
+        <i class="bi bi-people-fill me-2"></i>User Reports
+    </h2>
+    <hr />
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            <i class="bi bi-info-circle me-2"></i>No users found in the system.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle rounded-3 overflow-hidden">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Username</th>
+                        <th scope="col">Email</th>
+                        <th scope="col" class="text-center">Total Assigned Tasks</th>
+                        <th scope="col" class="text-center">Completed</th>
+                        <th scope="col" class="text-center">In Progress</th>
+                        <th scope="col" class="text-center">To Do</th>
+                        <th scope="col">Role</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var report in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@report.User.Username</strong><br />
+                                <small class="text-muted">Member since: @report.User.CreatedAt.ToShortDateString()</small>
+                            </td>
+                            <td>@report.User.Email</td>
+                            <td class="text-center"><span class="badge bg-dark rounded-pill px-3 py-2">@report.TotalTasksAssigned</span></td>
+                            <td class="text-center"><span class="badge bg-success rounded-pill px-3 py-2">@report.CompletedTasksAssigned</span></td>
+                            <td class="text-center"><span class="badge bg-warning text-dark rounded-pill px-3 py-2">@report.InProgressTasksAssigned</span></td>
+                            <td class="text-center"><span class="badge bg-info rounded-pill px-3 py-2">@report.ToDoTasksAssigned</span></td>
+                            <td><span class="badge bg-secondary">@report.User.Role?.Title</span></td>
+                            <td>
+                                <a href="#" class="btn btn-outline-info btn-sm rounded-pill"
+                                   data-bs-toggle="modal" data-bs-target="#userTasksModal_@report.User.Id">
+                                    <i class="bi bi-list-task"></i> View Tasks
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modals for viewing assigned tasks for each user -->
+        @foreach (var report in Model)
+        {
+            <div class="modal fade" id="userTasksModal_@report.User.Id" tabindex="-1" aria-labelledby="userTasksModalLabel_@report.User.Id" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content rounded-4">
+                        <div class="modal-header bg-info text-white rounded-top-4">
+                            <h5 class="modal-title" id="userTasksModalLabel_@report.User.Id">
+                                Tasks Assigned to @report.User.Username
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            @if (!report.AssignedTasks.Any())
+                            {
+                                <div class="alert alert-light text-center" role="alert">No tasks assigned to this user.</div>
+                            }
+                            else
+                            {
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var task in report.AssignedTasks.OrderBy(t => t.TaskDueDate))
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1 text-primary">@task.TaskTitle</h6>
+                                                <small class="text-muted">Status: @task.TaskStatus | Priority: @task.TaskPriority | Due: @task.TaskDueDate?.ToShortDateString()</small>
+                                            </div>
+                                            <a asp-action="TaskDetails" asp-route-id="@task.Id" class="btn btn-outline-secondary btn-sm rounded-pill">
+                                                View <i class="bi bi-arrow-right"></i>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="mt-4 text-center">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+            <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>

@@ -1,0 +1,402 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering; // Needed for SelectList
+using Microsoft.EntityFrameworkCore;
+using StackFlow.Data;
+using StackFlow.Models;
+using StackFlow.ViewModels;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace StackFlow.Controllers
+{
+    // Ensures only authenticated users can access the dashboard
+    [Authorize]
+    public class DashboardController : Controller
+    {
+        private readonly AppDbContext _context;
+
+        public DashboardController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// Displays the main dashboard with an overview of tasks and projects for the current user.
+        /// </summary>
+        public async Task<IActionResult> Index()
+        {
+            // Get the current user's ID from claims
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdString, out int currentUserId))
+            {
+                // If user ID is not found or invalid, redirect to login.
+                // This might indicate an authentication issue or corrupted cookie.
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Fetch the current user along with their role for display on the dashboard.
+            var currentUser = await _context.Users
+                                            .Include(u => u.Role) // Eager load the Role navigation property
+                                            .FirstOrDefaultAsync(u => u.Id == currentUserId);
+
+            if (currentUser == null)
+            {
+                // If the user is authenticated but not found in the database,
+                // it suggests a data inconsistency or deleted user.
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Fetch all tasks, including their associated Project, AssignedTo User, and CreatedBy User.
+            // This ensures all necessary data for task cards is available.
+            var allTasks = await _context.Tasks
+                                         .Include(t => t.Project)
+                                         .Include(t => t.AssignedTo)
+                                         .Include(t => t.TaskCreatedBy)
+                                         .ToListAsync();
+
+            // Fetch all projects. In a real application, you might filter this
+            // based on user involvement (e.g., projects they created or are assigned to).
+            var allProjects = await _context.Projects
+                                            .Include(p => p.CreatedBy) // Include the user who created the project
+                                            .ToListAsync();
+
+            // Populate the DashboardViewModel with the fetched data.
+            var viewModel = new DashboardViewModel
+            {
+                Username = currentUser.Username,
+                Role = currentUser.Role?.Title ?? "Unknown Role", // Safely get role title, default if null
+                CurrentUserId = currentUserId,
+                // Filter tasks assigned to the current user
+                AssignedToMeTasks = allTasks.Where(t => t.AssignedToUserId == currentUserId).ToList(),
+                // Filter tasks by their status
+                ToDoTasks = allTasks.Where(t => t.TaskStatus == "To Do").ToList(),
+                InProgressTasks = allTasks.Where(t => t.TaskStatus == "In Progress").ToList(),
+                CompletedTasks = allTasks.Where(t => t.TaskStatus == "Completed").ToList(),
+                // Assign all projects (consider filtering for large datasets)
+                Projects = allProjects
+            };
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// Displays the form for creating a new task.
+        /// Populates dropdowns for Project and AssignedToUser.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> CreateTask()
+        {
+            // Fetch all projects to populate the Project dropdown
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName");
+
+            // Fetch all users to populate the AssignedTo dropdown
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username");
+
+            // Initialize a new Task model to bind to the form
+            return View(new StackFlow.Models.Task());
+        }
+
+        /// <summary>
+        /// Handles the submission of the new task creation form.
+        /// </summary>
+        /// <param name="task">The Task model populated from the form.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTask([Bind("TaskTitle,TaskDescription,ProjectId,AssignedToUserId,TaskStatus,TaskPriority,TaskDueDate")] StackFlow.Models.Task task)
+        {
+            // Get the current user's ID to set as the creator of the task
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdString, out int currentUserId))
+            {
+                // If user ID is invalid, return unauthorized or redirect to login.
+                return Unauthorized();
+            }
+
+            // Manually set properties that are not part of the form binding
+            task.TaskCreatedByUserId = currentUserId;
+            task.TaskCreatedAt = DateTime.UtcNow;
+
+            // Validate the model based on data annotations
+            if (ModelState.IsValid)
+            {
+                _context.Add(task); // Add the new task to the database context
+                await _context.SaveChangesAsync(); // Save changes
+                return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+            }
+
+            // If ModelState is not valid, re-populate ViewBag and return the view with errors
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+            return View(task); // Return the view with validation errors
+        }
+
+        /// <summary>
+        /// Displays the form for creating a new project.
+        /// </summary>
+        [HttpGet]
+        public IActionResult CreateProject()
+        {
+            // No specific dropdowns needed for project creation, but you might add options later.
+            return View(new Project()); // Return a new Project model
+        }
+
+        /// <summary>
+        /// Handles the submission of the new project creation form.
+        /// </summary>
+        /// <param name="project">The Project model populated from the form.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateProject([Bind("ProjectName,ProjectDescription,ProjectStartDate,ProjectEndDate,ProjectStatus")] Project project)
+        {
+            // Get the current user's ID to set as the creator of the project
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdString, out int currentUserId))
+            {
+                // If user ID is invalid, return unauthorized or redirect to login.
+                TempData["ErrorMessage"] = "Authentication error: Could not identify user.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Manually set the CreatedByUserId
+            project.CreatedByUserId = currentUserId;
+
+            // Validate the model based on data annotations
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Add(project); // Add the new project to the database context
+                    await _context.SaveChangesAsync(); // Save changes
+                    TempData["SuccessMessage"] = $"Project '{project.ProjectName}' created successfully!";
+                    return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception (e.g., using ILogger)
+                    TempData["ErrorMessage"] = $"Error creating project: {ex.Message}";
+                    return View(project); // Stay on the create page with error
+                }
+            }
+            // If ModelState is not valid, return the view with errors
+            TempData["ErrorMessage"] = "Please correct the errors in the form.";
+            return View(project);
+        }
+
+        /// <summary>
+        /// Displays the detailed view of a single task, including its comments.
+        /// </summary>
+        /// <param name="id">The ID of the task to display.</param>
+        [HttpGet]
+        public async Task<IActionResult> TaskDetails(int id)
+        {
+            // Fetch the specific task by ID, eagerly loading all related data:
+            // Project, AssignedTo User, TaskCreatedBy User, and all TaskComments with their associated Users.
+            var task = await _context.Tasks
+                                     .Include(t => t.Project)
+                                     .Include(t => t.AssignedTo)
+                                     .Include(t => t.TaskCreatedBy)
+                                     .Include(t => t.TaskComments)
+                                        .ThenInclude(tc => tc.User) // This loads the User for each TaskComment
+                                     .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (task == null)
+            {
+                return NotFound(); // Return 404 if task not found
+            }
+
+            // Map the Task model to the TaskViewModel for display.
+            // This allows for including additional computed properties or flattening navigation properties.
+            var taskViewModel = new TaskViewModel
+            {
+                Id = task.Id,
+                TaskTitle = task.TaskTitle,
+                TaskDescription = task.TaskDescription,
+                ProjectId = task.ProjectId,
+                Project = task.Project,
+                AssignedToUserId = task.AssignedToUserId,
+                AssignedTo = task.AssignedTo,
+                TaskStatus = task.TaskStatus,
+                TaskPriority = task.TaskPriority,
+                TaskCreatedByUserId = task.TaskCreatedByUserId,
+                TaskCreatedBy = task.TaskCreatedBy,
+                TaskCreatedAt = task.TaskCreatedAt,
+                TaskDueDate = task.TaskDueDate,
+                TaskCompletedAt = task.TaskCompletedAt,
+                Comments = task.TaskComments.OrderBy(c => c.CommentCreatedAt).ToList(), // Order comments by creation date
+                AssignedToUsername = task.AssignedTo?.Username, // Null-conditional operator for safety
+                ProjectName = task.Project?.ProjectName,
+                CreatedByUsername = task.TaskCreatedBy?.Username
+            };
+
+            return View(taskViewModel);
+        }
+
+        /// <summary>
+        /// Handles the submission for adding a new comment to a task.
+        /// </summary>
+        /// <param name="taskId">The ID of the task to add the comment to.</param>
+        /// <param name="commentText">The text content of the comment.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int taskId, string commentText)
+        {
+            // Get the current user's ID
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdString, out int currentUserId))
+            {
+                // If user ID is invalid, return unauthorized or redirect to login.
+                return Unauthorized();
+            }
+
+            // Basic validation for comment text
+            if (string.IsNullOrWhiteSpace(commentText))
+            {
+                // Add a model error and redirect back to the task details.
+                // In a real app, you might want to display this error more gracefully.
+                ModelState.AddModelError("commentText", "Comment cannot be empty.");
+                return RedirectToAction(nameof(TaskDetails), new { id = taskId });
+            }
+
+            // Create a new TaskComment instance
+            var taskComment = new TaskComment
+            {
+                TaskId = taskId,
+                UserId = currentUserId,
+                CommentText = commentText.Trim(), // Trim whitespace
+                CommentCreatedAt = DateTime.UtcNow
+            };
+
+            _context.TaskComments.Add(taskComment); // Add the comment to the database context
+            await _context.SaveChangesAsync(); // Save changes
+
+            // Redirect back to the TaskDetails page for the same task
+            return RedirectToAction(nameof(TaskDetails), new { id = taskId });
+        }
+
+        /// <summary>
+        /// Displays the form for editing an existing task.
+        /// </summary>
+        /// <param name="id">The ID of the task to edit.</param>
+        [HttpGet]
+        public async Task<IActionResult> EditTask(int id)
+        {
+            var task = await _context.Tasks.FindAsync(id); // Find the task by ID
+            if (task == null)
+            {
+                return NotFound(); // Return 404 if task not found
+            }
+
+            // Populate dropdowns similar to CreateTask for Project and AssignedToUser
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+
+            // Populate dropdown for TaskStatus and TaskPriority (assuming fixed options)
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "Completed" }, task.TaskStatus);
+            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+
+            return View(task); // Pass the found task to the view
+        }
+
+        /// <summary>
+        /// Handles the submission of the edited task form.
+        /// </summary>
+        /// <param name="id">The ID of the task being edited.</param>
+        /// <param name="task">The Task model populated from the form.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditTask(int id, [Bind("Id,TaskTitle,TaskDescription,ProjectId,AssignedToUserId,TaskStatus,TaskPriority,TaskDueDate,TaskCompletedAt")] StackFlow.Models.Task task)
+        {
+            if (id != task.Id)
+            {
+                return NotFound(); // Mismatch in ID, return 404
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(task); // Update the task in the database context
+                    await _context.SaveChangesAsync(); // Save changes
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // Check if the task actually exists before throwing error
+                    if (!await _context.Tasks.AnyAsync(e => e.Id == task.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw; // Re-throw if it's a genuine concurrency issue
+                    }
+                }
+                return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+            }
+
+            // If ModelState is not valid, re-populate ViewBags and return the view with errors
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "Completed" }, task.TaskStatus);
+            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+
+            return View(task); // Return the view with validation errors
+        }
+
+        /// <summary>
+        /// Displays a report of projects with their task statistics.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ProjectReports()
+        {
+            var projects = await _context.Projects
+                                         .Include(p => p.Tasks) // Eager load tasks for each project
+                                         .OrderBy(p => p.ProjectName)
+                                         .ToListAsync();
+
+            var projectReports = projects.Select(p => new ProjectReportViewModel
+            {
+                Project = p,
+                TotalTasks = p.Tasks.Count,
+                CompletedTasks = p.Tasks.Count(t => t.TaskStatus == "Completed"),
+                InProgressTasks = p.Tasks.Count(t => t.TaskStatus == "In Progress"),
+                ToDoTasks = p.Tasks.Count(t => t.TaskStatus == "To Do")
+            }).ToList();
+
+            return View(projectReports);
+        }
+
+        /// <summary>
+        /// Displays a report of all users and their assigned task statistics.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> UserReports()
+        {
+            // Fetch all users and include their assigned tasks
+            var users = await _context.Users
+                                      .Include(u => u.AssignedTasks) // Eager load tasks assigned to each user
+                                      .OrderBy(u => u.Username)
+                                      .ToListAsync();
+
+            var userReports = users.Select(u => new UserReportViewModel
+            {
+                User = u,
+                TotalTasksAssigned = u.AssignedTasks.Count,
+                CompletedTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "Completed"),
+                InProgressTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "In Progress"),
+                ToDoTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "To Do"),
+                AssignedTasks = u.AssignedTasks.Select(t => new TaskViewModel
+                {
+                    Id = t.Id,
+                    TaskTitle = t.TaskTitle,
+                    TaskStatus = t.TaskStatus,
+                    TaskPriority = t.TaskPriority,
+                    TaskDueDate = t.TaskDueDate
+                }).ToList() // Populate a simplified list of assigned tasks
+            }).ToList();
+
+            return View(userReports);
+        }
+    }
+}

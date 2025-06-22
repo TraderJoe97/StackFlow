@@ -1,29 +1,55 @@
-﻿@{
+﻿@model dynamic
+@{
     ViewData["Title"] = "Login";
+    Layout = "_Layout"; // Ensure it uses your defined layout
 }
 
-<div class="row justify-content-center">
-    <div class="col-12 col-md-6 col-lg-4">
-        <h2 class="mb-4 text-center">Login to Stack Flow</h2>
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="card-title text-center mb-4 fw-bold text-primary">StackFlow Login</h2>
+                <p class="card-text text-center text-muted mb-4">Sign in to your account</p>
 
-        <form asp-action="Login" method="post" class="border p-4 rounded bg-light shadow-sm">
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <form asp-controller="Account" asp-action="Login" method="post">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input name="email" type="email" class="form-control" required />
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" id="email" name="email" class="form-control rounded-end-pill" placeholder="name@omnitak.com" required autocomplete="email" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" id="password" name="password" class="form-control rounded-end-pill" placeholder="••••••••" required autocomplete="current-password" />
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Log In
+                        </button>
+                    </div>
+
+                    <p class="text-center text-muted mt-3">
+                        Don't have an account? <a asp-controller="Account" asp-action="Register" class="text-decoration-none fw-bold">Register here</a>
+                    </p>
+                </form>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required />
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 mb-2">Login</button>
-
-            <div class="text-center">
-                <a asp-controller="Account" asp-action="Register">Register here</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    @{
+        // This line is needed for client-side validation scripts to be rendered.
+        // It generally comes from a partial view like "_ValidationScriptsPartial.cshtml"
+        // which you might add to your project if you use ASP.NET Core MVC's built-in validation.
+        // For simplicity, we're not including that partial here, but noting its typical usage.
+    }
+}

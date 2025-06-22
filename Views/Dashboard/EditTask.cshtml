@@ -1,0 +1,86 @@
+﻿@model StackFlow.Models.Task
+
+@{
+    ViewData["Title"] = "Edit Task: " + Model.TaskTitle;
+}
+
+<div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
+    <h2 class="card-title text-center mb-4 fw-bold text-warning">Edit Task</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <form asp-action="EditTask" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="TaskCreatedByUserId" />
+                <input type="hidden" asp-for="TaskCreatedAt" />
+
+                <div class="mb-3">
+                    <label asp-for="TaskTitle" class="form-label">Task Title</label>
+                    <input asp-for="TaskTitle" class="form-control rounded-pill" />
+                    <span asp-validation-for="TaskTitle" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="TaskDescription" class="form-label">Description</label>
+                    <textarea asp-for="TaskDescription" class="form-control rounded-4" rows="5"></textarea>
+                    <span asp-validation-for="TaskDescription" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ProjectId" class="form-label">Project</label>
+                    <select asp-for="ProjectId" class="form-control rounded-pill" asp-items="ViewBag.Projects"></select>
+                    <span asp-validation-for="ProjectId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="AssignedToUserId" class="form-label">Assign To</label>
+                    <select asp-for="AssignedToUserId" class="form-control rounded-pill" asp-items="ViewBag.Users">
+                        <option value="">-- Unassigned --</option>
+                    </select>
+                    <span asp-validation-for="AssignedToUserId" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="TaskStatus" class="form-label">Status</label>
+                        <select asp-for="TaskStatus" class="form-control rounded-pill" asp-items="ViewBag.TaskStatuses"></select>
+                        <span asp-validation-for="TaskStatus" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="TaskPriority" class="form-label">Priority</label>
+                        <select asp-for="TaskPriority" class="form-control rounded-pill" asp-items="ViewBag.TaskPriorities"></select>
+                        <span asp-validation-for="TaskPriority" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="TaskDueDate" class="form-label">Due Date</label>
+                    <input asp-for="TaskDueDate" type="date" class="form-control rounded-pill" />
+                    <span asp-validation-for="TaskDueDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="TaskCompletedAt" class="form-label">Completed At</label>
+                    <input asp-for="TaskCompletedAt" type="date" class="form-control rounded-pill" />
+                    <span asp-validation-for="TaskCompletedAt" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-warning btn-lg rounded-pill">
+                        <i class="bi bi-save-fill me-2"></i> Save Changes
+                    </button>
+                    <a asp-action="TaskDetails" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill">
+                        <i class="bi bi-arrow-left-circle me-2"></i> Back to Task Details
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
