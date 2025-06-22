@@ -8,7 +8,7 @@ namespace StackFlow.Models
     public class User
     {
         [Key]
-        [Column("user_id")]
+        [Column("id")]
         public int Id { get; set; }
 
         [Required]
@@ -21,14 +21,14 @@ namespace StackFlow.Models
         public string Email { get; set; }
 
         [Required]
-        [Column("password_hash")]
+        [Column("password")]
         public string PasswordHash { get; set; }
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
-        [ForeignKey("RoleId")]
+        [ForeignKey("role_Id")]
         public Role Role { get; set; }
     }
 }

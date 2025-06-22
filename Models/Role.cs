@@ -8,11 +8,11 @@ namespace StackFlow.Models
     public class Role
     {
         [Key]
-        [Column("role_id")]
+        [Column("id")]
         public int RoleId { get; set; }
 
         [Required]
-        [Column("title")]
+        [Column("role_name")]
         public string Title { get; set; }
 
         [Column("description")]
