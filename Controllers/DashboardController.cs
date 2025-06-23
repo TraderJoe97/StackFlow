@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering; // Needed for SelectList
 using Microsoft.EntityFrameworkCore;
 using StackFlow.Data;
 using StackFlow.Models;
 using StackFlow.ViewModels;
+using System; // Added for Exception
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -111,7 +112,8 @@ namespace StackFlow.Controllers
             if (!int.TryParse(userIdString, out int currentUserId))
             {
                 // If user ID is invalid, return unauthorized or redirect to login.
-                return Unauthorized();
+                TempData["ErrorMessage"] = "Authentication error: Could not identify user for task creation.";
+                return RedirectToAction("Login", "Account");
             }
 
             // Manually set properties that are not part of the form binding
@@ -121,12 +123,26 @@ namespace StackFlow.Controllers
             // Validate the model based on data annotations
             if (ModelState.IsValid)
             {
-                _context.Add(task); // Add the new task to the database context
-                await _context.SaveChangesAsync(); // Save changes
-                return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+                try
+                {
+                    _context.Add(task); // Add the new task to the database context
+                    await _context.SaveChangesAsync(); // Save changes
+                    TempData["SuccessMessage"] = $"Task '{task.TaskTitle}' created successfully!";
+                    return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception (e.g., using ILogger)
+                    TempData["ErrorMessage"] = $"Error creating task: {ex.Message}";
+                    // Re-populate ViewBags before returning the view
+                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
+                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+                    return View(task); // Stay on the create page with error
+                }
             }
 
             // If ModelState is not valid, re-populate ViewBag and return the view with errors
+            TempData["ErrorMessage"] = "Please correct the errors in the form.";
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
             return View(task); // Return the view with validation errors
