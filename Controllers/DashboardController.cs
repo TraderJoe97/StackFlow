@@ -9,6 +9,7 @@ using System; // Added for Exception
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Collections.Generic; // Added for List<string>
 
 namespace StackFlow.Controllers
 {
@@ -74,7 +75,7 @@ namespace StackFlow.Controllers
                 // Filter tasks by their status
                 ToDoTasks = allTasks.Where(t => t.TaskStatus == "To Do").ToList(),
                 InProgressTasks = allTasks.Where(t => t.TaskStatus == "In Progress").ToList(),
-                CompletedTasks = allTasks.Where(t => t.TaskStatus == "Completed").ToList(),
+                CompletedTasks = allTasks.Where(t => t.TaskStatus == "Done").ToList(), // Changed from "Completed" to "Done"
                 // Assign all projects (consider filtering for large datasets)
                 Projects = allProjects
             };
@@ -94,6 +95,11 @@ namespace StackFlow.Controllers
 
             // Fetch all users to populate the AssignedTo dropdown
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username");
+
+            // Define consistent Task Statuses and Priorities
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" });
+            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" });
+
 
             // Initialize a new Task model to bind to the form
             return View(new StackFlow.Models.Task());
@@ -137,6 +143,8 @@ namespace StackFlow.Controllers
                     // Re-populate ViewBags before returning the view
                     ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
                     ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+                    ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
+                    ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
                     return View(task); // Stay on the create page with error
                 }
             }
@@ -145,6 +153,8 @@ namespace StackFlow.Controllers
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
+            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
             return View(task); // Return the view with validation errors
         }
 
@@ -154,7 +164,8 @@ namespace StackFlow.Controllers
         [HttpGet]
         public IActionResult CreateProject()
         {
-            // No specific dropdowns needed for project creation, but you might add options later.
+            // Define consistent Project Statuses based on DB CHECK constraint
+            ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" });
             return View(new Project()); // Return a new Project model
         }
 
@@ -192,11 +203,14 @@ namespace StackFlow.Controllers
                 {
                     // Log the exception (e.g., using ILogger)
                     TempData["ErrorMessage"] = $"Error creating project: {ex.Message}";
+                    // Re-populate ViewBag for project statuses before returning view
+                    ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" }, project.ProjectStatus);
                     return View(project); // Stay on the create page with error
                 }
             }
             // If ModelState is not valid, return the view with errors
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
+            ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" }, project.ProjectStatus);
             return View(project);
         }
 
@@ -308,8 +322,8 @@ namespace StackFlow.Controllers
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
 
-            // Populate dropdown for TaskStatus and TaskPriority (assuming fixed options)
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "Completed" }, task.TaskStatus);
+            // Populate dropdown for TaskStatus and TaskPriority (using consistent options)
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus); // Updated to match DB
             ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
 
             return View(task); // Pass the found task to the view
@@ -354,7 +368,7 @@ namespace StackFlow.Controllers
             // If ModelState is not valid, re-populate ViewBags and return the view with errors
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "Completed" }, task.TaskStatus);
+            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus); // Updated to match DB
             ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
 
             return View(task); // Return the view with validation errors
@@ -375,7 +389,7 @@ namespace StackFlow.Controllers
             {
                 Project = p,
                 TotalTasks = p.Tasks.Count,
-                CompletedTasks = p.Tasks.Count(t => t.TaskStatus == "Completed"),
+                CompletedTasks = p.Tasks.Count(t => t.TaskStatus == "Done"), // Changed from "Completed" to "Done"
                 InProgressTasks = p.Tasks.Count(t => t.TaskStatus == "In Progress"),
                 ToDoTasks = p.Tasks.Count(t => t.TaskStatus == "To Do")
             }).ToList();
@@ -399,7 +413,7 @@ namespace StackFlow.Controllers
             {
                 User = u,
                 TotalTasksAssigned = u.AssignedTasks.Count,
-                CompletedTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "Completed"),
+                CompletedTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "Done"), // Changed from "Completed" to "Done"
                 InProgressTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "In Progress"),
                 ToDoTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "To Do"),
                 AssignedTasks = u.AssignedTasks.Select(t => new TaskViewModel
