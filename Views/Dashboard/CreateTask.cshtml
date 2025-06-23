@@ -1,4 +1,4 @@
-﻿@model StackFlow.Models.Task
+@model StackFlow.Models.Task
 
 @{
     ViewData["Title"] = "Create New Task";
@@ -7,6 +7,22 @@
 <div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
     <h2 class="card-title text-center mb-4 fw-bold text-primary">Create New Task</h2>
     <hr />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="row">
         <div class="col-md-8 offset-md-2">
             <form asp-action="CreateTask" method="post">
@@ -43,19 +59,15 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="TaskStatus" class="form-label">Status</label>
-                        <select asp-for="TaskStatus" class="form-control rounded-pill">
-                            <option value="To Do">To Do</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
+                        <select asp-for="TaskStatus" class="form-control rounded-pill" asp-items="ViewBag.TaskStatuses">
+                            <option value="">-- Select Status --</option>
                         </select>
                         <span asp-validation-for="TaskStatus" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label asp-for="TaskPriority" class="form-label">Priority</label>
-                        <select asp-for="TaskPriority" class="form-control rounded-pill">
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
+                        <select asp-for="TaskPriority" class="form-control rounded-pill" asp-items="ViewBag.TaskPriorities">
+                            <option value="">-- Select Priority --</option>
                         </select>
                         <span asp-validation-for="TaskPriority" class="text-danger"></span>
                     </div>
