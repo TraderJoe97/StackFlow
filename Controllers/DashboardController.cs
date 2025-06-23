@@ -113,6 +113,17 @@ namespace StackFlow.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateTask([Bind("TaskTitle,TaskDescription,ProjectId,AssignedToUserId,TaskStatus,TaskPriority,TaskDueDate")] StackFlow.Models.Task task)
         {
+            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
+            // These errors can arise if the model binder attempts to validate these properties
+            // even when they're not part of the input, especially if they're non-nullable
+            // and backed by required foreign keys or collections.
+            ModelState.Remove("Project");
+            ModelState.Remove("AssignedTo");
+            ModelState.Remove("TaskComments");
+            ModelState.Remove("TaskCreatedBy"); // This is the navigation property
+            ModelState.Remove("TaskCreatedByUserId"); // If this is also causing issues, remove it too
+
+
             // Get the current user's ID to set as the creator of the task
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
@@ -123,7 +134,7 @@ namespace StackFlow.Controllers
             }
 
             // Manually set properties that are not part of the form binding
-            task.TaskCreatedByUserId = currentUserId;
+            task.TaskCreatedByUserId = currentUserId; // Set this BEFORE ModelState.IsValid check
             task.TaskCreatedAt = DateTime.UtcNow;
 
             // Validate the model based on data annotations
