@@ -186,6 +186,7 @@ namespace StackFlow.Controllers
         /// <param name="project">The Project model populated from the form.</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Updated [Bind] attribute to exclude navigation properties 'CreatedBy' and 'Tasks'
         public async Task<IActionResult> CreateProject([Bind("ProjectName,ProjectDescription,ProjectStartDate,ProjectEndDate,ProjectStatus")] Project project)
         {
             // Get the current user's ID to set as the creator of the project
