@@ -30,7 +30,6 @@ namespace StackFlow.Controllers
         public async Task<IActionResult> Index()
         {
             // Get the current user's ID from claims
-            C#
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
@@ -389,12 +388,29 @@ namespace StackFlow.Controllers
                 return NotFound(); // Mismatch in ID, return 404
             }
 
+            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
+            // These errors can arise if the model binder attempts to validate these properties
+            // even when they're not part of the input, especially if they're non-nullable
+            // and backed by required foreign keys or collections.
+            ModelState.Remove("Project");
+            ModelState.Remove("AssignedTo");
+            ModelState.Remove("TaskComments");
+            ModelState.Remove("TaskCreatedBy");
+            ModelState.Remove("TaskCreatedByUserId");
+
+
+            // Since TaskCreatedByUserId is likely not sent from the form but is required
+            // in the model, ensure it's re-added to the model state (if valid) or manually set.
+            // If the model is from a database retrieval, it should already have this value.
+            // We assume TaskCreatedByUserId is already correctly set when loading the task for editing.
+
             if (ModelState.IsValid)
             {
                 try
                 {
                     _context.Update(task); // Update the task in the database context
                     await _context.SaveChangesAsync(); // Save changes
+                    TempData["SuccessMessage"] = $"Task '{task.TaskTitle}' updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -408,14 +424,35 @@ namespace StackFlow.Controllers
                         throw; // Re-throw if it's a genuine concurrency issue
                     }
                 }
+                catch (Exception ex) // Catch other potential exceptions during save
+                {
+                    TempData["ErrorMessage"] = $"Error updating task: {ex.Message}";
+                    // Re-populate ViewBags before returning the view
+                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
+                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+                    ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
+                    ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+                    return View(task);
+                }
                 return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
             }
 
             // If ModelState is not valid, re-populate ViewBags and return the view with errors
+            TempData["ErrorMessage"] = "Please correct the errors in the form.";
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
             ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus); // Updated to match DB
             ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+
+            // --- DEBUGGING: Print validation errors to console ---
+            foreach (var modelStateEntry in ModelState.Values)
+            {
+                foreach (var error in modelStateEntry.Errors)
+                {
+                    Console.WriteLine($"Validation Error (EditTask): {error.ErrorMessage}");
+                }
+            }
+            // --- END DEBUGGING ---
 
             return View(task); // Return the view with validation errors
         }
@@ -449,9 +486,10 @@ namespace StackFlow.Controllers
         [HttpGet]
         public async Task<IActionResult> UserReports()
         {
-            // Fetch all users and include their assigned tasks
+            // Fetch all users and include their assigned tasks AND their roles
             var users = await _context.Users
                                       .Include(u => u.AssignedTasks) // Eager load tasks assigned to each user
+                                      .Include(u => u.Role) // Eager load the Role navigation property
                                       .OrderBy(u => u.Username)
                                       .ToListAsync();
 
