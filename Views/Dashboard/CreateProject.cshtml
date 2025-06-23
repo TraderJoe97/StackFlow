@@ -1,4 +1,4 @@
-﻿@model StackFlow.Models.Project
+@model StackFlow.Models.Project
 
 @{
     ViewData["Title"] = "Create New Project";
@@ -55,12 +55,8 @@
 
                 <div class="mb-3">
                     <label asp-for="ProjectStatus" class="form-label">Status</label>
-                    <select asp-for="ProjectStatus" class="form-control rounded-pill">
-                        <option value="Planning">Planning</option>
-                        <option value="Active">Active</option>
-                        <option value="On Hold">On Hold</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Archived">Archived</option>
+                    <select asp-for="ProjectStatus" class="form-control rounded-pill" asp-items="ViewBag.ProjectStatuses">
+                        <option value="">-- Select Status --</option>
                     </select>
                     <span asp-validation-for="ProjectStatus" class="text-danger"></span>
                 </div>
