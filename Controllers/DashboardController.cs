@@ -30,6 +30,7 @@ namespace StackFlow.Controllers
         public async Task<IActionResult> Index()
         {
             // Get the current user's ID from claims
+            C#
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
@@ -117,9 +118,9 @@ namespace StackFlow.Controllers
             // These errors can arise if the model binder attempts to validate these properties
             // even when they're not part of the input, especially if they're non-nullable
             // and backed by required foreign keys or collections.
-            ModelState.Remove("Project");
-            ModelState.Remove("AssignedTo");
-            ModelState.Remove("TaskComments");
+            ModelState.Remove("Project"); // Exclude Project navigation property
+            ModelState.Remove("AssignedTo"); // Exclude AssignedTo navigation property
+            ModelState.Remove("TaskComments"); // Exclude TaskComments navigation property
             ModelState.Remove("TaskCreatedBy"); // This is the navigation property
             ModelState.Remove("TaskCreatedByUserId"); // If this is also causing issues, remove it too
 
