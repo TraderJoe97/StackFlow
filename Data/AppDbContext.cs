@@ -13,7 +13,7 @@ namespace StackFlow.Data
     
         public DbSet<Project> Projects { get; set; }
         public DbSet<StackFlow.Models.Task> Tasks { get; set; }
-        public DbSet<TaskComment> TaskComments { get; set; }
+        public DbSet<TaskComment> Task_comments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
