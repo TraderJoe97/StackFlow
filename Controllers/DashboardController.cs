@@ -155,6 +155,17 @@ namespace StackFlow.Controllers
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
             ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
             ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+
+            // --- DEBUGGING: Print validation errors to console ---
+            foreach (var modelStateEntry in ModelState.Values)
+            {
+                foreach (var error in modelStateEntry.Errors)
+                {
+                    Console.WriteLine($"Validation Error (CreateTask): {error.ErrorMessage}");
+                }
+            }
+            // --- END DEBUGGING ---
+
             return View(task); // Return the view with validation errors
         }
 
@@ -211,6 +222,17 @@ namespace StackFlow.Controllers
             // If ModelState is not valid, return the view with errors
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
             ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" }, project.ProjectStatus);
+
+            // --- DEBUGGING: Print validation errors to console ---
+            foreach (var modelStateEntry in ModelState.Values)
+            {
+                foreach (var error in modelStateEntry.Errors)
+                {
+                    Console.WriteLine($"Validation Error (CreateProject): {error.ErrorMessage}");
+                }
+            }
+            // --- END DEBUGGING ---
+
             return View(project);
         }
 
