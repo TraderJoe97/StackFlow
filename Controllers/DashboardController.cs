@@ -189,6 +189,16 @@ namespace StackFlow.Controllers
         // Updated [Bind] attribute to exclude navigation properties 'CreatedBy' and 'Tasks'
         public async Task<IActionResult> CreateProject([Bind("ProjectName,ProjectDescription,ProjectStartDate,ProjectEndDate,ProjectStatus")] Project project)
         {
+            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
+            // These errors can arise if the model binder attempts to validate these properties
+            // even when they're not part of the input, especially if they're non-nullable
+            // and backed by required foreign keys or collections.
+            ModelState.Remove("CreatedBy");
+            ModelState.Remove("Tasks");
+            // Also explicitly remove CreatedByUserId as we are setting it manually
+            ModelState.Remove("CreatedByUserId");
+
+
             // Get the current user's ID to set as the creator of the project
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
@@ -198,7 +208,8 @@ namespace StackFlow.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Manually set the CreatedByUserId
+            // Manually set the CreatedByUserId BEFORE checking ModelState.IsValid
+            // This ensures that the foreign key property, which might be implicitly required, has a value.
             project.CreatedByUserId = currentUserId;
 
             // Validate the model based on data annotations
