@@ -56,7 +56,7 @@
                 <div class="mb-3">
                     <label asp-for="ProjectStatus" class="form-label">Status</label>
                     <select asp-for="ProjectStatus" class="form-control rounded-pill" asp-items="ViewBag.ProjectStatuses">
-                        <option value="">-- Select Status --</option>
+                        <option value="">-- Select Status --</option> @* Optional: Add a default unselected option *@
                     </select>
                     <span asp-validation-for="ProjectStatus" class="text-danger"></span>
                 </div>
