@@ -1,7 +1,7 @@
-﻿@* No model needed for simple register form - uses parameters in controller *@
+﻿
 @{
     ViewData["Title"] = "Register";
-    Layout = "_Layout"; // Ensure it uses the shared layout
+    Layout = "_Layout"; 
 }
 
 <div class="account-page-container">
@@ -48,15 +48,24 @@
                         <label for="email" class="form-label fw-semibold">Email</label>
                         <input type="email" id="email" name="email" class="form-control form-control-lg rounded-pill" placeholder="your.email@omnitak.com" required />
                         <div class="invalid-feedback">
-                            Please enter a valid omnitak.com email address.
+                            Please enter a valid company email address.
                         </div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label for="password" class="form-label fw-semibold">Password</label>
                         <input type="password" id="password" name="password" class="form-control form-control-lg rounded-pill" placeholder="Choose a password" required />
                         <div class="invalid-feedback">
                             Please enter a password.
+                        </div>
+                    </div>
+
+                    @* New: Confirm Password Field *@
+                    <div class="mb-4">
+                        <label for="confirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control form-control-lg rounded-pill" placeholder="Confirm your password" required />
+                        <div class="invalid-feedback" id="confirmPasswordFeedback">
+                            Please confirm your password.
                         </div>
                     </div>
 
@@ -86,12 +95,42 @@
             Array.prototype.slice.call(forms)
                 .forEach(function (form) {
                     form.addEventListener('submit', function (event) {
+                        const password = document.getElementById('password');
+                        const confirmPassword = document.getElementById('confirmPassword');
+                        const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
+
+                        // Check if passwords match
+                        if (password.value !== confirmPassword.value) {
+                            confirmPassword.setCustomValidity('Passwords do not match.');
+                            confirmPasswordFeedback.textContent = 'Passwords do not match.';
+                        } else {
+                            confirmPassword.setCustomValidity(''); // Clear custom validity
+                        }
+
                         if (!form.checkValidity()) {
                             event.preventDefault()
                             event.stopPropagation()
                         }
                         form.classList.add('was-validated')
                     }, false)
+
+                    // Add real-time validation for password match on input change
+                    const password = document.getElementById('password');
+                    const confirmPassword = document.getElementById('confirmPassword');
+                    const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
+
+                    function validatePasswordMatch() {
+                        if (confirmPassword.value !== '' && password.value !== confirmPassword.value) {
+                            confirmPassword.setCustomValidity('Passwords do not match.');
+                            confirmPasswordFeedback.textContent = 'Passwords do not match.';
+                        } else {
+                            confirmPassword.setCustomValidity('');
+                            confirmPasswordFeedback.textContent = 'Please confirm your password.'; // Reset to default message
+                        }
+                    }
+
+                    password.addEventListener('input', validatePasswordMatch);
+                    confirmPassword.addEventListener('input', validatePasswordMatch);
                 })
         })()
     </script>
