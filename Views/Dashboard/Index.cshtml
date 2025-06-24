@@ -10,7 +10,7 @@
         @* Desktop Fixed Sidebar Column *@
     <div class="col-lg-3 d-none d-lg-block">
         <div class="sidebar-offcanvas-desktop-fixed">
-            @* Apply the desktop fixed styling here *
+            @* Apply the desktop fixed styling here *@
                 @* Render the sidebar partial directly inside the desktop fixed sidebar container *@
             <partial name="_SidebarPartial" />
         </div>
@@ -159,6 +159,7 @@
                                 </ul>
                             </div>
                             <div class="card-footer bg-transparent border-top-0 d-flex justify-content-end gap-2">
+                                @* Link to Project Details *@
                                 <a asp-action="ProjectDetails" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary rounded-pill">
                                     <i class="bi bi-eye"></i> View
                                 </a>

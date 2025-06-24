@@ -272,7 +272,7 @@ namespace StackFlow.Controllers
             // Force a default selected value for the dropdown if Model.Status is null or empty
             var currentStatus = string.IsNullOrEmpty(ticket.Status) ? "To Do" : ticket.Status;
 
-            // --- FIX: Create a list of SelectListItem explicitly to ensure values are set ---
+            // FIX: Create a list of SelectListItem explicitly to ensure values are set
             var statusOptions = new List<SelectListItem>
             {
                 new SelectListItem { Value = "To Do", Text = "To Do", Selected = (currentStatus == "To Do") },
@@ -531,6 +531,28 @@ namespace StackFlow.Controllers
                 TempData["ErrorMessage"] = $"Error deleting ticket: {ex.Message}";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// Displays the detailed view of a single project, including its associated tickets.
+        /// Accessible to all authenticated users.
+        /// </summary>
+        /// <param name="id">The ID of the project to view.</param>
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ProjectDetails(int id)
+        {
+            var project = await _context.Projects
+                                        .Include(p => p.CreatedBy)
+                                        .Include(p => p.Tickets) // Eager load associated tickets
+                                        .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            return View(project);
         }
 
         /// <summary>
