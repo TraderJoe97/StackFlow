@@ -4,7 +4,9 @@
     --bs-body-color: #212529;
     --bs-card-bg: #ffffff;
     --bs-card-border-color: rgba(0, 0, 0, 0.125);
-    --bs-navbar-bg: #ffffff;
+    --bs-header-bg: #ffffff; /* New variable for header background */
+    --bs-header-color: #212529; /* New variable for header text color */
+    --bs-navbar-bg: #ffffff; /* This is for the sidebar and footer now */
     --bs-navbar-color: rgba(0, 0, 0, 0.55);
     --bs-navbar-hover-color: rgba(0, 0, 0, 0.7);
     --bs-sidebar-bg: #ffffff;
@@ -12,6 +14,8 @@
     --bs-sidebar-active-bg: #e9ecef;
     --bs-sidebar-active-text: #007bff;
     --bs-border-color: #dee2e6;
+    --bs-table-hover-bg: #e2e6ea; /* Light mode table hover background */
+    --bs-table-hover-color: #212529; /* Light mode table hover text color */
 }
 
 [data-bs-theme="dark"] {
@@ -19,7 +23,9 @@
     --bs-body-color: #e2e6ea;
     --bs-card-bg: #343a40;
     --bs-card-border-color: rgba(255, 255, 255, 0.125);
-    --bs-navbar-bg: #343a40;
+    --bs-header-bg: #343a40; /* Dark mode header background */
+    --bs-header-color: #e2e6ea; /* Dark mode header text color */
+    --bs-navbar-bg: #343a40; /* Dark mode for sidebar and footer */
     --bs-navbar-color: rgba(255, 255, 255, 0.55);
     --bs-navbar-hover-color: rgba(255, 255, 255, 0.7);
     --bs-sidebar-bg: #2b3035;
@@ -27,6 +33,8 @@
     --bs-sidebar-active-bg: #495057;
     --bs-sidebar-active-text: #00bcd4;
     --bs-border-color: #495057;
+    --bs-table-hover-bg: #495057; /* Dark mode table hover background */
+    --bs-table-hover-color: #ffffff; /* Dark mode table hover text color (ensures visibility) */
 }
 
 body {
@@ -36,16 +44,51 @@ body {
     display: flex;
     min-height: 100vh;
     flex-direction: column;
-    margin-top: 0; /* Ensures no default margin-top from browser or Bootstrap */
-    padding-top: 0; /* Resetting padding-top for body */
+    margin: 0;
+    padding: 0;
 }
 
-.navbar {
+/* Styles for the main app header (containing logo and user menu) */
+.app-header {
+    background-color: var(--bs-header-bg); /* Use theme variable */
+    color: var(--bs-header-color); /* Use theme variable for text */
     box-shadow: 0 2px 4px rgba(0,0,0,.04);
-    background-color: var(--bs-navbar-bg);
-    position: sticky; /* Make it stick to the top */
+    position: fixed; /* Make the header fixed */
     top: 0;
-    z-index: 1030; /* Ensure it stays on top of other content */
+    left: 0;
+    right: 0;
+    z-index: 1030; /* Ensure it stays on top */
+    height: 60px; /* Define a fixed height for the header */
+    display: flex; /* Use flexbox for internal alignment */
+    align-items: center; /* Center items vertically */
+    padding-left: 1rem; /* Add padding consistent with main content */
+    padding-right: 1rem;
+}
+    /* Adjust padding for app-brand within the fixed header to prevent overlap with toggler */
+    .app-header .app-brand {
+        margin-left: 0.5rem; /* Adjust as needed for spacing with the toggle button */
+    }
+
+/* Style for the new logo image */
+.app-logo {
+    height: 40px; /* Adjust height as needed */
+    width: auto; /* Maintain aspect ratio */
+}
+
+/* Ensure brand and nav links in header adapt */
+.app-header .app-brand,
+.app-header .nav-link {
+    color: var(--bs-header-color);
+}
+
+    .app-header .nav-link:hover {
+        color: var(--bs-navbar-hover-color); /* Use general hover color or define header specific */
+    }
+
+/* Styles for the sidebar offcanvas (mobile) */
+.sidebar-offcanvas {
+    background-color: var(--bs-sidebar-bg);
+    color: var(--bs-sidebar-text);
 }
 
 .offcanvas-header, .offcanvas-body {
@@ -65,35 +108,42 @@ body {
 
 .main-content {
     flex: 1;
-    margin-left: 0;
+    padding-bottom: 80px;
+    padding-top: 60px; /* Padding for fixed header. Must match .app-header height */
+}
+/* Ensure pages like Privacy that don't use the sidebar also have consistent top padding */
+body:not(.has-sidebar) .main-content {
     padding-left: 2rem;
     padding-right: 2rem;
-    padding-bottom: 80px;
-    transition: margin-left 0.3s ease-in-out;
-    padding-top: calc(56px + 1rem); /* Adjust padding-top to account for fixed navbar height + some spacing.
-                                       Typical navbar height is around 56px for lg screens. */
 }
 
-@media (min-width: 992px) {
-    .main-content {
-        margin-left: 250px;
-    }
 
-    .sidebar-offcanvas {
+@media (min-width: 992px) {
+    /* Desktop fixed sidebar behavior - this style is applied to the div in Dashboard/Index.cshtml */
+    .sidebar-offcanvas-desktop-fixed {
         visibility: visible !important;
         transform: none !important;
         position: fixed;
-        top: 0;
+        top: 60px; /* Must match .app-header height */
         left: 0;
-        height: 100vh;
+        height: calc(100vh - 60px); /* Adjust height to fill remaining vertical space */
         width: 250px;
-        z-index: 1040;
+        z-index: 1020;
         border-right: 1px solid var(--bs-border-color);
-        padding-top: 0;
+        padding: 1rem; /* Combined padding */
+        background-color: var(--bs-sidebar-bg); /* Ensure sidebar background changes with theme */
     }
 
-    .navbar-toggler-sidebar {
-        display: none;
+    /* Hide the mobile toggler on desktop */
+    .d-lg-none.me-3 {
+        display: none !important;
+    }
+
+    /* Adjust main content for desktop sidebar */
+    .main-content-with-sidebar { /* Applied to col-lg-9 in Dashboard/Index.cshtml */
+        margin-left: 250px; /* Make space for the fixed sidebar */
+        padding-left: 2rem; /* Restore padding for content within the main area */
+        padding-right: 2rem;
     }
 }
 
@@ -104,7 +154,17 @@ body {
     border-top: 1px solid var(--bs-border-color);
     text-align: center;
     margin-top: auto;
+    color: var(--bs-navbar-color); /* Ensure footer text changes with theme */
 }
+    /* Ensure footer links adapt to theme */
+    .footer a {
+        color: var(--bs-navbar-color);
+    }
+
+        .footer a:hover {
+            color: var(--bs-navbar-hover-color);
+        }
+
 
 .card {
     background-color: var(--bs-card-bg);
@@ -133,4 +193,67 @@ body {
 .detail-box select.form-select.rounded-pill {
     padding: 0.375rem 1rem; /* Smaller vertical padding */
     height: calc(1.5em + 0.75rem + 2px); /* Standard form-control height for consistency */
+}
+
+/* Table text color adaptation */
+.table {
+    color: var(--bs-body-color); /* Ensure table text uses body color */
+}
+
+    .table thead {
+        color: #fff; /* Keep header text white, it's on a colored background */
+    }
+/* Adjusting table border color in dark mode */
+[data-bs-theme="dark"] .table-bordered {
+    border-color: var(--bs-border-color);
+}
+
+    [data-bs-theme="dark"] .table-bordered th,
+    [data-bs-theme="dark"] .table-bordered td {
+        border-color: var(--bs-border-color);
+    }
+
+/* Ensure card titles and subtitles adapt */
+.card-title, .card-subtitle {
+    color: inherit; /* Inherit from card body */
+}
+/* Adjust specific text colors for dark mode if they are hardcoded or not inheriting */
+[data-bs-theme="dark"] .text-primary,
+[data-bs-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-muted {
+    color: var(--bs-body-color) !important; /* Force text to adapt in dark mode */
+}
+/* Specifically for Quick Insights card text */
+.card-text {
+    color: inherit; /* Ensure card text adapts */
+}
+
+/* Adjust colors for specific alert types in dark mode if needed,
+   otherwise, they should use default Bootstrap colors with text-white/dark. */
+[data-bs-theme="dark"] .alert-info {
+    background-color: #0d6efd; /* Darker info */
+    color: #fff;
+    border-color: #0a58ca;
+}
+
+[data-bs-theme="dark"] .alert-success {
+    background-color: #198754; /* Darker success */
+    color: #fff;
+    border-color: #146c43;
+}
+
+[data-bs-theme="dark"] .alert-danger {
+    background-color: #dc3545; /* Darker danger */
+    color: #fff;
+    border-color: #b02a37;
+}
+
+/* FIX: Table hover state in dark mode */
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: var(--bs-table-hover-bg); /* Use dark mode hover background */
+    color: var(--bs-table-hover-color) !important; /* Ensure text color contrasts */
+}
+/* Also ensure general table cell text is inheriting the body color */
+.table tbody td {
+    color: var(--bs-body-color);
 }
