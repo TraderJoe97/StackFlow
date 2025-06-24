@@ -1,44 +1,65 @@
-﻿@model dynamic
+﻿@* No model needed for simple login form *@
 @{
     ViewData["Title"] = "Login";
-    Layout = "_Layout"; // Ensure it uses your defined layout
+    Layout = "_Layout"; // Ensure it uses the shared layout
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body p-4 p-md-5">
-                <h2 class="card-title text-center mb-4 fw-bold text-primary">StackFlow Login</h2>
-                <p class="card-text text-center text-muted mb-4">Sign in to your account</p>
+<div class="account-page-container">
+    <div class="card shadow-lg border-0 rounded-4 p-4 account-card">
+        <h2 class="card-title text-center mb-4 fw-bold text-primary display-5">
+            <i class="bi bi-person-circle me-2"></i> Welcome Back!
+        </h2>
+        <hr class="mb-4" />
 
-                <form asp-controller="Account" asp-action="Login" method="post">
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (ViewData["LoginError"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewData["LoginError"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
 
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <form asp-controller="Account" asp-action="Login" method="post" class="needs-validation" novalidate>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email address</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            <input type="email" id="email" name="email" class="form-control rounded-end-pill" placeholder="name@omnitak.com" required autocomplete="email" />
+                        <label for="email" class="form-label fw-semibold">Email</label>
+                        <input type="email" id="email" name="email" class="form-control form-control-lg rounded-pill" placeholder="your.email@omnitak.com" required />
+                        <div class="invalid-feedback">
+                            Please enter a valid email address.
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" id="password" name="password" class="form-control rounded-end-pill" placeholder="••••••••" required autocomplete="current-password" />
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg rounded-pill" placeholder="Enter your password" required />
+                        <div class="invalid-feedback">
+                            Please enter your password.
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2 mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Log In
+                    <div class="d-grid gap-3">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm animate-btn">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Login
                         </button>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary btn-lg rounded-pill animate-btn">
+                            <i class="bi bi-person-add me-2"></i> Register New Account
+                        </a>
                     </div>
-
-                    <p class="text-center text-muted mt-3">
-                        Don't have an account? <a asp-controller="Account" asp-action="Register" class="text-decoration-none fw-bold">Register here</a>
-                    </p>
                 </form>
             </div>
         </div>
@@ -47,9 +68,27 @@
 
 @section Scripts {
     @{
-        // This line is needed for client-side validation scripts to be rendered.
-        // It generally comes from a partial view like "_ValidationScriptsPartial.cshtml"
-        // which you might add to your project if you use ASP.NET Core MVC's built-in validation.
-        // For simplicity, we're not including that partial here, but noting its typical usage.
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        // Bootstrap form validation
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+        })()
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/_Account.css" />
 }

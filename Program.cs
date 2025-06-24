@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient; // Keeping this from your provided code, though not explicitly used for connection string parsing here
 using Microsoft.EntityFrameworkCore;
 using StackFlow.Data;
-
+using StackFlow.Hubs; // Add this using directive for your SignalR Hub
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,51 +22,62 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                 errorNumbersToAdd: null);
             sqlOptions.CommandTimeout(60);
         });
-
 });
 
-// Configure authentication
+// Configure authentication using Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        // Configure cookie expiration to 1 hour
+        options.ExpireTimeSpan = TimeSpan.FromHours(1);
+        options.SlidingExpiration = true;
     });
+// Add SignalR services
+builder.Services.AddSignalR();
 
-var app = builder.Build();
 
-// Apply migrations automatically at startup, with basic error handling
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
+    var app = builder.Build();
+
+    // Apply migrations automatically at startup, with basic error handling
+    using (var scope = app.Services.CreateScope())
     {
-        db.Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        try
+        {
+            db.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Database migration failed: " + ex.Message);
+            // Optionally log this or notify via monitoring tool
+        }
     }
-    catch (Exception ex)
+
+    // Configure the HTTP request pipeline.
+    if (!app.Environment.IsDevelopment())
     {
-        Console.WriteLine("Database migration failed: " + ex.Message);
-        // Optionally log this or notify via monitoring tool
+        app.UseExceptionHandler("/Home/Error");
+        app.UseHsts();
     }
-}
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+    app.UseHttpsRedirection();
+    app.UseStaticFiles();
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+    app.UseRouting();
 
-app.UseRouting();
+    app.UseAuthentication();
+    app.UseAuthorization();
 
-app.UseAuthentication();
-app.UseAuthorization();
+    // Map SignalR Hubs
+    app.MapHub<DashboardHub>("/dashboardHub"); // Maps the DashboardHub to the URL /dashboardHub
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+    // Map Controller routes (keeping your provided default route)
+    // The default route is now Dashboard/Index to land authenticated users directly on the dashboard.
+    app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Dashboard}/{action=Index}/{id?}"); // Changed default controller to Dashboard and action to Index
 
-app.Run();
+    app.Run();

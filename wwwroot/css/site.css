@@ -1,22 +1,136 @@
-html {
-  font-size: 14px;
+/* Custom CSS Variables for Theming */
+:root {
+    --bs-body-bg: #f8f9fa;
+    --bs-body-color: #212529;
+    --bs-card-bg: #ffffff;
+    --bs-card-border-color: rgba(0, 0, 0, 0.125);
+    --bs-navbar-bg: #ffffff;
+    --bs-navbar-color: rgba(0, 0, 0, 0.55);
+    --bs-navbar-hover-color: rgba(0, 0, 0, 0.7);
+    --bs-sidebar-bg: #ffffff;
+    --bs-sidebar-text: #212529;
+    --bs-sidebar-active-bg: #e9ecef;
+    --bs-sidebar-active-text: #007bff;
+    --bs-border-color: #dee2e6;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+[data-bs-theme="dark"] {
+    --bs-body-bg: #212529;
+    --bs-body-color: #e2e6ea;
+    --bs-card-bg: #343a40;
+    --bs-card-border-color: rgba(255, 255, 255, 0.125);
+    --bs-navbar-bg: #343a40;
+    --bs-navbar-color: rgba(255, 255, 255, 0.55);
+    --bs-navbar-hover-color: rgba(255, 255, 255, 0.7);
+    --bs-sidebar-bg: #2b3035;
+    --bs-sidebar-text: #e2e6ea;
+    --bs-sidebar-active-bg: #495057;
+    --bs-sidebar-active-text: #00bcd4;
+    --bs-border-color: #495057;
 }
 
 body {
-  margin-bottom: 60px;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    margin-top: 0; /* Ensures no default margin-top from browser or Bootstrap */
+    padding-top: 0; /* Resetting padding-top for body */
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.04);
+    background-color: var(--bs-navbar-bg);
+    position: sticky; /* Make it stick to the top */
+    top: 0;
+    z-index: 1030; /* Ensure it stays on top of other content */
+}
+
+.offcanvas-header, .offcanvas-body {
+    background-color: var(--bs-sidebar-bg);
+    color: var(--bs-sidebar-text);
+}
+
+.sidebar-nav .nav-link {
+    color: var(--bs-sidebar-text);
+}
+
+    .sidebar-nav .nav-link.active,
+    .sidebar-nav .nav-link:hover {
+        background-color: var(--bs-sidebar-active-bg);
+        color: var(--bs-sidebar-active-text);
+    }
+
+.main-content {
+    flex: 1;
+    margin-left: 0;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-bottom: 80px;
+    transition: margin-left 0.3s ease-in-out;
+    padding-top: calc(56px + 1rem); /* Adjust padding-top to account for fixed navbar height + some spacing.
+                                       Typical navbar height is around 56px for lg screens. */
+}
+
+@media (min-width: 992px) {
+    .main-content {
+        margin-left: 250px;
+    }
+
+    .sidebar-offcanvas {
+        visibility: visible !important;
+        transform: none !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        z-index: 1040;
+        border-right: 1px solid var(--bs-border-color);
+        padding-top: 1rem;
+    }
+
+    .navbar-toggler-sidebar {
+        display: none;
+    }
+}
+
+.footer {
+    white-space: nowrap;
+    line-height: 60px;
+    background-color: var(--bs-navbar-bg);
+    border-top: 1px solid var(--bs-border-color);
+    text-align: center;
+    margin-top: auto;
+}
+
+.card {
+    background-color: var(--bs-card-bg);
+    border-color: var(--bs-card-border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom Gradient Backgrounds for Card Headers (if still desired) */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, var(--bs-primary), var(--bs-primary-dark));
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, var(--bs-success), var(--bs-success-dark));
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, var(--bs-info), var(--bs-info-dark));
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(45deg, var(--bs-warning), var(--bs-warning-dark));
+}
+
+/* Specific styling for select within detail-box to adjust height */
+.detail-box select.form-select.rounded-pill {
+    padding: 0.375rem 1rem; /* Smaller vertical padding */
+    height: calc(1.5em + 0.75rem + 2px); /* Standard form-control height for consistency */
 }

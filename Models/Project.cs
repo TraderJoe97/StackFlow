@@ -34,6 +34,6 @@ namespace StackFlow.Models
         public string ProjectStatus { get; set; }
 
         // Navigation property for Tasks belonging to this project
-        public ICollection<Task> Tasks { get; set; }
+        public ICollection<Ticket> Tickets { get; set; }
     }
 }

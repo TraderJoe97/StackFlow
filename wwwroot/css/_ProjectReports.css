@@ -1,0 +1,51 @@
+﻿
+.table {
+    border-color: var(--bs-border-color);
+}
+
+    .table thead th {
+        border-bottom: 2px solid var(--bs-border-color);
+        background-color: var(--bs-card-bg); /* Use card background for table header */
+        color: var(--bs-body-color);
+    }
+
+    .table tbody tr {
+        background-color: var(--bs-card-bg);
+        color: var(--bs-body-color);
+        transition: background-color 0.3s ease;
+    }
+
+        .table tbody tr:hover {
+            background-color: var(--bs-sidebar-active-bg); /* Use a hover color that adapts to theme */
+        }
+
+    /* Ensure borders are theme-aware */
+    .table > :not(caption) > * > * {
+        border-bottom-width: 1px;
+        border-color: var(--bs-border-color);
+    }
+
+/* Dark mode specific adjustments for table */
+[data-bs-theme="dark"] .table {
+    --bs-table-bg: var(--bs-card-bg);
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-striped-bg: #3c444c; /* Slightly different for striped effect in dark mode */
+    --bs-table-striped-color: var(--bs-body-color);
+    --bs-table-hover-bg: var(--bs-sidebar-active-bg);
+    --bs-table-hover-color: var(--bs-sidebar-active-text);
+}
+
+/* For badges within the table, ensuring visibility in dark mode */
+[data-bs-theme="dark"] .badge {
+    opacity: 0.9; /* Slightly less intense in dark mode */
+}
+
+.animate-btn {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+    .animate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }

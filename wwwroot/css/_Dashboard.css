@@ -1,0 +1,100 @@
+﻿body {
+}
+/* Dashboard Specific Styles */
+
+/* Define theme-dependent colors for gradients */
+[data-bs-theme="light"] {
+    --bs-primary-dark: #0056b3;
+    --bs-success-dark: #1e7e34;
+    --bs-info-dark: #117a8b;
+    --bs-warning-dark: #d39e00;
+    --bs-purple: #6f42c1; /* New base color for purple */
+    --bs-purple-dark: #563d7c; /* Darker shade for gradient */
+}
+
+[data-bs-theme="dark"] {
+    --bs-primary: #00bcd4;
+    --bs-primary-dark: #0097a7;
+    --bs-success: #66bb6a;
+    --bs-success-dark: #388e3c;
+    --bs-info: #4dd0e1;
+    --bs-info-dark: #00a4b4;
+    --bs-warning: #ffb300;
+    --bs-warning-dark: #ff8f00;
+    --bs-purple: #bb86fc; /* Lighter purple for dark mode */
+    --bs-purple-dark: #9e6ecb; /* Corresponding darker shade */
+}
+
+/* Custom Gradient Backgrounds for Card Headers */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, var(--bs-primary), var(--bs-primary-dark));
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, var(--bs-success), var(--bs-success-dark));
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, var(--bs-info), var(--bs-info-dark));
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(45deg, var(--bs-warning), var(--bs-warning-dark));
+}
+
+.bg-gradient-purple {
+    background: linear-gradient(45deg, var(--bs-purple), var(--bs-purple-dark));
+}
+/* New gradient class */
+
+/* Card styling enhancements */
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    }
+
+/* List group item styling for better appearance */
+.list-group-item-action:hover {
+    background-color: var(--bs-sidebar-active-bg);
+}
+
+.list-group-item.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+    .list-group-item.shadow-sm:hover {
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1) !important;
+    }
+
+/* Badges in list items */
+.list-group-item .badge {
+    min-width: 80px;
+    text-align: center;
+    padding: 0.5em 0.8em;
+}
+
+/* Small font for details */
+small {
+    font-size: 0.875em;
+}
+
+/* Fade-in animation for list items */
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,41 @@
+﻿@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+    <div class="text-center p-4 card shadow-lg rounded-4" style="max-width: 500px;">
+        <i class="bi bi-x-octagon-fill text-danger display-1 mb-3"></i>
+        <h1 class="display-4 fw-bold text-danger">Access Denied!</h1>
+        <p class="lead mb-4">You do not have permission to view this resource.</p>
+        <p>Please contact an administrator if you believe this is an error.</p>
+        <a asp-action="Index" asp-controller="Dashboard" class="btn btn-primary rounded-pill mt-3 animate-btn">
+            <i class="bi bi-arrow-left-circle me-2"></i> Go to Dashboard
+        </a>
+        <a asp-action="Logout" asp-controller="Account" class="btn btn-outline-secondary rounded-pill mt-3 ms-2 animate-btn">
+            <i class="bi bi-box-arrow-right me-2"></i> Logout
+        </a>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .animate-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .animate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Dark mode adjustments for the Access Denied page */
+        [data-bs-theme="dark"] .bg-light {
+            background-color: var(--bs-body-bg) !important;
+        }
+        [data-bs-theme="dark"] .card {
+            background-color: var(--bs-card-bg);
+            color: var(--bs-body-color);
+            border-color: var(--bs-card-border-color);
+        }
+    </style>
+}

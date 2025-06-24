@@ -4,181 +4,258 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="dashboard-header mb-4">
-    <h1 class="display-4 fw-bold text-primary">Welcome, @Model.Username!</h1>
-    <p class="lead text-muted">Your current role: <span class="badge bg-secondary rounded-pill">@Model.Role</span></p>
-</div>
+<div class="dashboard-container">
+    <div class="header-section mb-4 d-flex justify-content-between align-items-center">
+        <h1 class="display-5 fw-bold text-primary">Welcome, @Model.Username!</h1>
+        <p class="lead text-muted mb-0">Your role: <span class="badge bg-secondary rounded-pill px-3 py-2">@Model.Role</span></p>
+    </div>
 
-<div class="row">
-    <!-- Tasks Assigned to Me Section -->
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100">
-            <div class="card-header bg-gradient-primary text-white rounded-top-4 py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-person-fill me-2"></i>Tasks Assigned to Me</h5>
-            </div>
-            <div class="card-body">
-                @if (!Model.AssignedToMeTasks.Any())
-                {
-                    <div class="alert alert-info text-center" role="alert">
-                        <i class="bi bi-info-circle me-2"></i>You have no tasks assigned to you. Time to relax!
+    @* Quick Insights section - visible only to Admin users *@
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm border-0 rounded-4 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">Total Projects</h5>
+                        <i class="bi bi-folder-fill fs-4 text-success"></i>
                     </div>
-                }
-                else
-                {
-                    <div class="list-group list-group-flush">
-                        @foreach (var task in Model.AssignedToMeTasks.OrderByDescending(t => t.TaskPriority == "High").ThenByDescending(t => t.TaskPriority == "Medium").ThenBy(t => t.TaskDueDate))
-                        {
-                            <a asp-action="TaskDetails" asp-route-id="@task.Id" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 shadow-sm d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1 text-primary">@task.TaskTitle</h6>
-                                    <small class="text-muted"><i class="bi bi-tag me-1"></i>Project: @task.Project.ProjectName</small><br />
-                                    <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>Due: @task.TaskDueDate?.ToShortDateString()</small>
-                                </div>
-                                <span class="badge
-                                            @(task.TaskPriority == "High" ? "bg-danger" :
-                                                                            task.TaskPriority == "Medium" ? "bg-warning text-dark" : "bg-success")
-                                    rounded-pill">@task.TaskPriority</span>
-                    </a>
-                                        }
-                    </div>
-                }
+                    <div class="display-6 fw-bold text-success">@Model.Projects.Count</div>
+                    <small class="text-muted">Currently active or on hold</small>
+                </div>
             </div>
-            <div class="card-footer bg-light border-0 rounded-bottom-4 text-center">
-                <a asp-action="CreateTask" asp-controller="Dashboard" class="btn btn-outline-primary btn-sm rounded-pill">
-                    <i class="bi bi-plus-circle me-1"></i> Add New Task
-                </a>
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm border-0 rounded-4 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">Tickets To Do</h5> @* Text changed from Tasks To Do *@
+                        <i class="bi bi-hourglass-split fs-4 text-info"></i>
+                    </div>
+                    <div class="display-6 fw-bold text-info">@Model.ToDoTickets.Count</div> @* Property changed from ToDoTasks to ToDoTickets *@
+                    <small class="text-muted">Pending tickets across all projects</small> @* Text changed to tickets *@
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm border-0 rounded-4 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title mb-0">Tickets In Progress</h5> @* Text changed from Tasks In Progress *@
+                        <i class="bi bi-play-circle-fill fs-4 text-warning"></i>
+                    </div>
+                    <div class="display-6 fw-bold text-warning">@Model.InProgressTickets.Count</div> @* Property changed from InProgressTasks to InProgressTickets *@
+                    <small class="text-muted">Actively being worked on</small>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Tickets Assigned to Me Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-primary text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-person-fill me-2"></i>Tickets Assigned to Me</h5> @* Text changed to Tickets *@
+                </div>
+                <div class="card-body">
+                    @if (!Model.AssignedToMeTickets.Any()) @* Property changed from AssignedToMeTasks to AssignedToMeTickets *@
+                    {
+                        <div class="alert alert-info text-center bg-transparent border-0" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>You have no tickets assigned to you. Time to relax! @* Text changed to tickets *@
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var ticket in Model.AssignedToMeTickets.OrderByDescending(t => t.Priority == "High").ThenByDescending(t => t.Priority == "Medium").ThenBy(t => t.DueDate)) @* Property changed from AssignedToMeTasks to AssignedToMeTickets, TaskPriority to Priority, TaskDueDate to DueDate *@
+                            {
+                                <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 shadow-sm d-flex justify-content-between align-items-center fade-in">
+                                    @* Action changed to TicketDetails *@
+                                    <div>
+                                        <h6 class="mb-1 text-primary">@ticket.Title</h6> @* Property changed from TaskTitle to Title *@
+                                        <small class="text-muted"><i class="bi bi-tag me-1"></i>Project: @ticket.Project.ProjectName</small><br />
+                                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>Due: @ticket.DueDate?.ToShortDateString()</small> @* Property changed from TaskDueDate to DueDate *@
+                                    </div>
+                                    <span class="badge
+                                                @(ticket.Priority == "High" ? "bg-danger" : @* Property changed from TaskPriority to Priority *@
+                                                                                    ticket.Priority == "Medium" ? "bg-warning text-dark" : "bg-success")
+                                        rounded-pill">@ticket.Priority</span> @* Property changed from TaskPriority to Priority *@
+                        </a>
+                                                }
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-light border-0 rounded-bottom-4 text-center">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
+                    {
+                        <a asp-action="CreateTicket" asp-controller="Dashboard" class="btn btn-outline-primary btn-sm rounded-pill">
+                            @* Action changed to CreateTicket *@
+                            <i class="bi bi-plus-circle me-1"></i> Add New Ticket @* Text changed to Ticket *@
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-success text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-folder-fill me-2"></i>Your Projects</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Projects.Any())
+                    {
+                        <div class="alert alert-info text-center bg-transparent border-0" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>You are not associated with any projects yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var project in Model.Projects.OrderBy(p => p.ProjectName))
+                            {
+                                <a asp-action="ProjectReports" asp-controller="Dashboard" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 shadow-sm d-flex justify-content-between align-items-center fade-in">
+                                    <div>
+                                        <h6 class="mb-1 text-success">@project.ProjectName</h6>
+                                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Status: @project.ProjectStatus</small><br />
+                                        <small class="text-muted"><i class="bi bi-calendar-check me-1"></i>Ends: @project.ProjectEndDate?.ToShortDateString()</small>
+                                    </div>
+                                    <span class="badge bg-secondary rounded-pill">View Details <i class="bi bi-arrow-right"></i></span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-light border-0 rounded-bottom-4 text-center">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="CreateProject" asp-controller="Dashboard" class="btn btn-outline-success btn-sm rounded-pill">
+                            <i class="bi bi-plus-circle me-1"></i> Create New Project
+                        </a>
+                    }
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Projects Section -->
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100">
-            <div class="card-header bg-gradient-success text-white rounded-top-4 py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-folder-fill me-2"></i>Your Projects</h5>
-            </div>
-            <div class="card-body">
-                @if (!Model.Projects.Any())
-                {
-                    <div class="alert alert-info text-center" role="alert">
-                        <i class="bi bi-info-circle me-2"></i>You are not associated with any projects yet.
-                    </div>
-                }
-                else
-                {
-                    <div class="list-group list-group-flush">
-                        @foreach (var project in Model.Projects.OrderBy(p => p.ProjectName))
-                        {
-                            <a asp-action="ProjectReports" asp-controller="Dashboard" class="list-group-item list-group-item-action border-0 rounded-3 mb-2 shadow-sm d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1 text-success">@project.ProjectName</h6>
-                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Status: @project.ProjectStatus</small><br />
-                                    <small class="text-muted"><i class="bi bi-calendar-check me-1"></i>Ends: @project.ProjectEndDate?.ToShortDateString()</small>
-                                </div>
-                                <span class="badge bg-secondary rounded-pill">View Details <i class="bi bi-arrow-right"></i></span>
-                            </a>
-                        }
-                    </div>
-                }
-            </div>
-            <div class="card-footer bg-light border-0 rounded-bottom-4 text-center">
-                <a asp-action="CreateProject" asp-controller="Dashboard" class="btn btn-outline-success btn-sm rounded-pill">
-                    <i class="bi bi-plus-circle me-1"></i> Create New Project
-                </a>
+    <h3 class="mt-4 mb-3 fw-bold text-secondary">Ticket Status Overview</h3> @* Text changed to Ticket *@
+
+    <div class="row">
+        <!-- To Do Tickets -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-info text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-hourglass me-2"></i>To Do Tickets</h5> @* Text changed to Tickets *@
+                </div>
+                <div class="card-body">
+                    @if (!Model.ToDoTickets.Any()) @* Property changed from ToDoTasks to ToDoTickets *@
+                    {
+                        <div class="alert alert-light text-center bg-transparent border-0" role="alert">No "To Do" tickets.</div> @* Text changed to tickets *@
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ticket in Model.ToDoTickets.OrderBy(t => t.DueDate)) @* Property changed from ToDoTasks to ToDoTickets, TaskDueDate to DueDate *@
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center border-0 fade-in">
+                                    <div>
+                                        <h6 class="mb-1">@ticket.Title</h6> @* Property changed from TaskTitle to Title *@
+                                        <small class="text-muted">Due: @ticket.DueDate?.ToShortDateString()</small> @* Property changed from TaskDueDate to DueDate *@
+                                    </div>
+                                    <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a> @* Action changed to TicketDetails *@
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<h3 class="mt-4 mb-3 fw-bold text-secondary">Task Status Overview</h3>
-
-<div class="row">
-    <!-- To Do Tasks -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100">
-            <div class="card-header bg-gradient-info text-white rounded-top-4 py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-hourglass me-2"></i>To Do Tasks</h5>
-            </div>
-            <div class="card-body">
-                @if (!Model.ToDoTasks.Any())
-                {
-                    <div class="alert alert-light text-center" role="alert">No "To Do" tasks.</div>
-                }
-                else
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var task in Model.ToDoTasks.OrderBy(t => t.TaskDueDate))
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center border-0">
-                                <div>
-                                    <h6 class="mb-1">@task.TaskTitle</h6>
-                                    <small class="text-muted">Due: @task.TaskDueDate?.ToShortDateString()</small>
-                                </div>
-                                <a asp-action="TaskDetails" asp-route-id="@task.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a>
-                            </li>
-                        }
-                    </ul>
-                }
+        <!-- In Progress Tickets -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-warning text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-play-circle-fill me-2"></i>In Progress Tickets</h5> @* Text changed to Tickets *@
+                </div>
+                <div class="card-body">
+                    @if (!Model.InProgressTickets.Any()) @* Property changed from InProgressTasks to InProgressTickets *@
+                    {
+                        <div class="alert alert-light text-center bg-transparent border-0" role="alert">No "In Progress" tickets.</div> @* Text changed to tickets *@
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ticket in Model.InProgressTickets.OrderBy(t => t.DueDate)) @* Property changed from InProgressTasks to InProgressTickets, TaskDueDate to DueDate *@
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center border-0 fade-in">
+                                    <div>
+                                        <h6 class="mb-1">@ticket.Title</h6> @* Property changed from TaskTitle to Title *@
+                                        <small class="text-muted">Due: @ticket.DueDate?.ToShortDateString()</small> @* Property changed from TaskDueDate to DueDate *@
+                                    </div>
+                                    <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a> @* Action changed to TicketDetails *@
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- In Progress Tasks -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100">
-            <div class="card-header bg-gradient-warning text-white rounded-top-4 py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-play-circle-fill me-2"></i>In Progress Tasks</h5>
-            </div>
-            <div class="card-body">
-                @if (!Model.InProgressTasks.Any())
-                {
-                    <div class="alert alert-light text-center" role="alert">No "In Progress" tasks.</div>
-                }
-                else
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var task in Model.InProgressTasks.OrderBy(t => t.TaskDueDate))
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center border-0">
-                                <div>
-                                    <h6 class="mb-1">@task.TaskTitle</h6>
-                                    <small class="text-muted">Due: @task.TaskDueDate?.ToShortDateString()</small>
-                                </div>
-                                <a asp-action="TaskDetails" asp-route-id="@task.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a>
-                            </li>
-                        }
-                    </ul>
-                }
+        <!-- In Review Tickets -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-purple text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-eyeglasses me-2"></i>In Review Tickets</h5> @* Text changed to Tickets *@
+                </div>
+                <div class="card-body">
+                    @if (!Model.InReviewTickets.Any()) @* Property changed from InReviewTasks to InReviewTickets *@
+                    {
+                        <div class="alert alert-light text-center bg-transparent border-0" role="alert">No "In Review" tickets.</div> @* Text changed to tickets *@
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ticket in Model.InReviewTickets.OrderBy(t => t.DueDate)) @* Property changed from InReviewTasks to InReviewTickets, TaskDueDate to DueDate *@
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center border-0 fade-in">
+                                    <div>
+                                        <h6 class="mb-1">@ticket.Title</h6> @* Property changed from TaskTitle to Title *@
+                                        <small class="text-muted">Due: @ticket.DueDate?.ToShortDateString()</small> @* Property changed from TaskDueDate to DueDate *@
+                                    </div>
+                                    <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a> @* Action changed to TicketDetails *@
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Completed Tasks -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm border-0 rounded-4 h-100">
-            <div class="card-header bg-gradient-success text-white rounded-top-4 py-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Completed Tasks</h5>
-            </div>
-            <div class="card-body">
-                @if (!Model.CompletedTasks.Any())
-                {
-                    <div class="alert alert-light text-center" role="alert">No "Completed" tasks.</div>
-                }
-                else
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var task in Model.CompletedTasks.OrderByDescending(t => t.TaskCompletedAt))
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 text-muted">
-                                <div>
-                                    <h6 class="mb-1 text-decoration-line-through">@task.TaskTitle</h6>
-                                    <small>Completed: @task.TaskCompletedAt?.ToShortDateString()</small>
-                                </div>
-                                <a asp-action="TaskDetails" asp-route-id="@task.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a>
-                            </li>
-                        }
-                    </ul>
-                }
+        <!-- Done Tickets -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-gradient-success text-white rounded-top-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Done Tickets</h5> @* Text changed to Tickets *@
+                </div>
+                <div class="card-body">
+                    @if (!Model.CompletedTickets.Any()) @* Property changed from CompletedTasks to CompletedTickets *@
+                    {
+                        <div class="alert alert-light text-center bg-transparent border-0" role="alert">No "Done" tickets.</div> @* Text changed to tickets *@
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var ticket in Model.CompletedTickets.OrderByDescending(t => t.CompletedAt)) @* Property changed from CompletedTasks to CompletedTickets, TaskCompletedAt to CompletedAt *@
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center border-0 text-muted fade-in">
+                                    <div>
+                                        <h6 class="mb-1 text-decoration-line-through">@ticket.Title</h6> @* Property changed from TaskTitle to Title *@
+                                        <small>Completed: @ticket.CompletedAt?.ToShortDateString()</small> @* Property changed from TaskCompletedAt to CompletedAt *@
+                                    </div>
+                                    <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-secondary rounded-pill">View <i class="bi bi-arrow-right"></i></a> @* Action changed to TicketDetails *@
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -188,56 +265,6 @@
     <!-- Any dashboard-specific JavaScript could go here -->
 }
 
-<style>
-    /* Custom Gradient Backgrounds for Card Headers */
-    .bg-gradient-primary {
-        background: linear-gradient(45deg, #007bff, #0056b3);
-    }
-
-    .bg-gradient-success {
-        background: linear-gradient(45deg, #28a745, #1e7e34);
-    }
-
-    .bg-gradient-info {
-        background: linear-gradient(45deg, #17a2b8, #117a8b);
-    }
-
-    .bg-gradient-warning {
-        background: linear-gradient(45deg, #ffc107, #d39e00);
-    }
-
-    /* Card styling enhancements */
-    .card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,.08);
-        }
-
-    /* List group item styling for better appearance */
-    .list-group-item-action:hover {
-        background-color: #e9ecef;
-    }
-
-    .list-group-item.shadow-sm {
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-    }
-
-        .list-group-item.shadow-sm:hover {
-            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1) !important;
-        }
-
-    /* Badges in list items */
-    .list-group-item .badge {
-        min-width: 80px;
-        text-align: center;
-        padding: 0.5em 0.8em;
-    }
-
-    /* Small font for details */
-    small {
-        font-size: 0.875em;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/_Dashboard.css" />
+}

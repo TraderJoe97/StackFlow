@@ -1,53 +1,73 @@
-﻿@model dynamic
+﻿@* No model needed for simple register form - uses parameters in controller *@
 @{
     ViewData["Title"] = "Register";
-    Layout = "_Layout"; // Ensure it uses your defined layout
+    Layout = "_Layout"; // Ensure it uses the shared layout
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body p-4 p-md-5">
-                <h2 class="card-title text-center mb-4 fw-bold text-primary">StackFlow Registration</h2>
-                <p class="card-text text-center text-muted mb-4">Create your new account</p>
+<div class="account-page-container">
+    <div class="card shadow-lg border-0 rounded-4 p-4 account-card">
+        <h2 class="card-title text-center mb-4 fw-bold text-success display-5">
+            <i class="bi bi-person-add me-2"></i> Create New Account
+        </h2>
+        <hr class="mb-4" />
 
-                <form asp-controller="Account" asp-action="Register" method="post">
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (ViewData["RegistrationError"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewData["RegistrationError"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
 
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <form asp-controller="Account" asp-action="Register" method="post" class="needs-validation" novalidate>
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" id="username" name="username" class="form-control rounded-end-pill" placeholder="Your username" required autocomplete="username" />
+                        <label for="username" class="form-label fw-semibold">Username</label>
+                        <input type="text" id="username" name="username" class="form-control form-control-lg rounded-pill" placeholder="Choose a username" required />
+                        <div class="invalid-feedback">
+                            Please enter a username.
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email address</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            <input type="email" id="email" name="email" class="form-control rounded-end-pill" placeholder="name@omnitak.com" required autocomplete="email" />
+                        <label for="email" class="form-label fw-semibold">Email</label>
+                        <input type="email" id="email" name="email" class="form-control form-control-lg rounded-pill" placeholder="your.email@omnitak.com" required />
+                        <div class="invalid-feedback">
+                            Please enter a valid omnitak.com email address.
                         </div>
-                        <div class="form-text text-muted">Only omnitak.com emails are allowed.</div>
                     </div>
 
                     <div class="mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" id="password" name="password" class="form-control rounded-end-pill" placeholder="••••••••" required autocomplete="new-password" />
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg rounded-pill" placeholder="Choose a password" required />
+                        <div class="invalid-feedback">
+                            Please enter a password.
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2 mb-3">
-                        <button type="submit" class="btn btn-success btn-lg rounded-pill">
+                    <div class="d-grid gap-3">
+                        <button type="submit" class="btn btn-success btn-lg rounded-pill shadow-sm animate-btn">
                             <i class="bi bi-person-plus-fill me-2"></i> Register
                         </button>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-lg rounded-pill animate-btn">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Already have an account? Login
+                        </a>
                     </div>
-
-                    <p class="text-center text-muted mt-3">
-                        Already have an account? <a asp-controller="Account" asp-action="Login" class="text-decoration-none fw-bold">Login here</a>
-                    </p>
                 </form>
             </div>
         </div>
@@ -56,6 +76,27 @@
 
 @section Scripts {
     @{
-    
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        // Bootstrap form validation
+        (function () {
+            'use strict'
+            var forms = document.querySelectorAll('.needs-validation')
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+        })()
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/_Account.css" />
 }

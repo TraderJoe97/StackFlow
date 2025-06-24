@@ -1,95 +1,97 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using StackFlow.Models;
-using System.Linq; // Already there for LastOrDefault, keeping it.
 
 namespace StackFlow.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
+        }
 
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Project> Projects { get; set; }
-        public DbSet<StackFlow.Models.Task> Tasks { get; set; } // No need for full namespace if 'Task' is not ambiguous
-        public DbSet<TaskComment> TaskComments { get; set; } // Changed DbSet property name to TaskComments for consistency
+        public DbSet<Ticket> Tickets { get; set; } // Changed from Tasks to Tickets
+        public DbSet<TicketComment> TicketComments { get; set; } // Changed from TaskComments to TicketComments
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
-            // Explicitly map entity names to their snake_case table names in the database
-            modelBuilder.Entity<User>().ToTable("users");
-            modelBuilder.Entity<Role>().ToTable("roles");
-            modelBuilder.Entity<Project>().ToTable("projects");
-            modelBuilder.Entity<StackFlow.Models.Task>().ToTable("tasks");
-            modelBuilder.Entity<TaskComment>().ToTable("task_comments"); // Explicitly map TaskComment to task_comments table
-
-
-            // User and Role relationship
+            // Configure User and Role relationship
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Role)
                 .WithMany(r => r.Users)
                 .HasForeignKey(u => u.RoleId)
-                .IsRequired(); // RoleId is NOT NULL based on schema for user 'role id'
+                .OnDelete(DeleteBehavior.SetNull);
 
-            // Project and User (CreatedBy) relationship
+            // Configure Project and User relationships
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.CreatedBy)
-                .WithMany(u => u.CreatedProjects) // Assuming you have ICollection<Project> CreatedProjects in User.cs
+                .WithMany(u => u.CreatedProjects)
                 .HasForeignKey(p => p.CreatedByUserId)
-                .IsRequired(); // Assuming created_by is NOT NULL
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Task and Project relationship
-            modelBuilder.Entity<StackFlow.Models.Task>()
+            // Configure Ticket relationships (formerly Task)
+            modelBuilder.Entity<Ticket>() // Changed from Task to Ticket
                 .HasOne(t => t.Project)
-                .WithMany(p => p.Tasks) // Assuming Project has ICollection<Task> Tasks
+                .WithMany(p => p.Tickets) // Changed from p.Tasks to p.Tickets
                 .HasForeignKey(t => t.ProjectId)
-                .IsRequired(); // Assuming project_id is NOT NULL
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Task and User (AssignedTo) relationship
-            modelBuilder.Entity<StackFlow.Models.Task>()
+            modelBuilder.Entity<Ticket>() // Changed from Task to Ticket
                 .HasOne(t => t.AssignedTo)
-                .WithMany(u => u.AssignedTasks) // Assuming User has ICollection<Task> AssignedTasks
+                .WithMany(u => u.AssignedTickets) // Changed from u.AssignedTasks to u.AssignedTickets
                 .HasForeignKey(t => t.AssignedToUserId)
-                .IsRequired(false); // Assigned_to is NULLABLE
+                .OnDelete(DeleteBehavior.SetNull); // When a user is deleted, set their assigned tickets' AssignedToUserId to NULL
 
-            // Task and User (TaskCreatedBy) relationship
-            modelBuilder.Entity<StackFlow.Models.Task>()
-                .HasOne(t => t.TaskCreatedBy)
-                .WithMany(u => u.CreatedTasks) // Assuming User has ICollection<Task> CreatedTasks
-                .HasForeignKey(t => t.TaskCreatedByUserId)
-                .IsRequired(); // Assuming task_created_by is NOT NULL
+            modelBuilder.Entity<Ticket>() // Changed from Task to Ticket
+                .HasOne(t => t.CreatedBy) // Changed from t.TicketCreatedBy to t.CreatedBy
+                .WithMany(u => u.CreatedTickets) // Changed from u.CreatedTasks to u.CreatedTickets
+                .HasForeignKey(t => t.CreatedByUserId) // Changed from t.TicketCreatedByUserId to t.CreatedByUserId
+                .OnDelete(DeleteBehavior.NoAction); // CHANGE: Set to NoAction to break potential cycles.
+                                                    // Application code must handle tickets created by a deleted user.
 
-            // TaskComment and Task relationship
-            modelBuilder.Entity<TaskComment>()
-                .HasOne(tc => tc.Task)
-                .WithMany(t => t.TaskComments)
-                .HasForeignKey(tc => tc.TaskId)
-                .IsRequired(); // Assuming task_id is NOT NULL
+            // Configure TicketComment relationships (formerly TaskComment)
+            modelBuilder.Entity<TicketComment>() // Changed from TaskComment to TicketComment
+                .HasOne(tc => tc.Ticket) // Changed from tc.Task to tc.Ticket
+                .WithMany(t => t.Comments) // Changed from t.TicketComments to t.Comments
+                .HasForeignKey(tc => tc.TicketId) // Changed from tc.TaskId to tc.TicketId
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // TaskComment and User relationship
-            modelBuilder.Entity<TaskComment>()
+            modelBuilder.Entity<TicketComment>() // Changed from TaskComment to TicketComment
                 .HasOne(tc => tc.User)
-                .WithMany(u => u.TaskComments)
+                .WithMany(u => u.TicketComments) // Changed from u.TaskComments to u.TicketComments
                 .HasForeignKey(tc => tc.UserId)
-                .IsRequired(); // Assuming user_id is NOT NULL
+                .OnDelete(DeleteBehavior.Restrict);
 
-
-            // Seed a default project for easy testing (optional)
-            // Ensure that a user with Id = 1 exists in your database or this will fail.
-            // This seeding will only run if you apply migrations after adding it.
-            modelBuilder.Entity<Project>().HasData(
-                new Project
-                {
-                    Id = 1,
-                    ProjectName = "Default Project",
-                    ProjectDescription = "A default project for initial tasks.",
-                    CreatedByUserId = 1, // Make sure a user with ID 1 exists (e.g., your initial admin user)
-                    ProjectStartDate = DateTime.UtcNow.Date,
-                    ProjectStatus = "Active"
-                }
+            // Example of seeding roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Title = "Admin", Description = "Administrator with full access" },
+                new Role { Id = 2, Title = "Project Manager", Description = "Manages projects and tickets" },
+                new Role { Id = 3, Title = "Developer", Description = "Works on assigned tickets" }
             );
+
+            // Add CHECK constraint for TicketStatus
+            modelBuilder.Entity<Ticket>()
+                .ToTable(t => t.HasCheckConstraint("CK_Ticket_Status", "Status IN ('To Do', 'In Progress', 'In Review', 'Done')"))
+                .Property(t => t.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            // Add CHECK constraint for ProjectStatus - CORRECTED TO SNAKE_CASE
+            modelBuilder.Entity<Project>()
+                .ToTable(t => t.HasCheckConstraint("CK_Project_Status", "project_status IN ('Active', 'Completed', 'On Hold')")) // CHANGED to project_status
+                .Property(p => p.ProjectStatus)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            // Add CHECK constraint for TicketPriority
+            modelBuilder.Entity<Ticket>()
+                .ToTable(t => t.HasCheckConstraint("CK_Ticket_Priority", "Priority IN ('Low', 'Medium', 'High')"))
+                .Property(t => t.Priority)
+                .HasConversion<string>()
+                .HasMaxLength(10);
         }
     }
 }

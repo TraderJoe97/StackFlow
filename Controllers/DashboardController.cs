@@ -1,82 +1,75 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering; // Needed for SelectList
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using StackFlow.Data;
 using StackFlow.Models;
 using StackFlow.ViewModels;
-using System; // Added for Exception
+using StackFlow.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Collections.Generic; // Added for List<string>
+using System.Collections.Generic;
 
 namespace StackFlow.Controllers
 {
-    // Ensures only authenticated users can access the dashboard
+    // All actions in this controller require authentication
     [Authorize]
     public class DashboardController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<DashboardHub> _hubContext;
 
-        public DashboardController(AppDbContext context)
+        public DashboardController(AppDbContext context, IHubContext<DashboardHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         /// <summary>
-        /// Displays the main dashboard with an overview of tasks and projects for the current user.
+        /// Displays the main dashboard with an overview of tickets and projects for the current user.
+        /// Quick insights are only visible to Admin users.
         /// </summary>
         public async Task<IActionResult> Index()
         {
-            // Get the current user's ID from claims
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
-                // If user ID is not found or invalid, redirect to login.
-                // This might indicate an authentication issue or corrupted cookie.
                 return RedirectToAction("Login", "Account");
             }
 
-            // Fetch the current user along with their role for display on the dashboard.
             var currentUser = await _context.Users
-                                            .Include(u => u.Role) // Eager load the Role navigation property
+                                            .Include(u => u.Role)
                                             .FirstOrDefaultAsync(u => u.Id == currentUserId);
 
             if (currentUser == null)
             {
-                // If the user is authenticated but not found in the database,
-                // it suggests a data inconsistency or deleted user.
                 return RedirectToAction("Login", "Account");
             }
 
-            // Fetch all tasks, including their associated Project, AssignedTo User, and CreatedBy User.
-            // This ensures all necessary data for task cards is available.
-            var allTasks = await _context.Tasks
+            // Fetch all tickets, eager loading related Project, AssignedTo, and CreatedBy users
+            var allTickets = await _context.Tickets
                                          .Include(t => t.Project)
                                          .Include(t => t.AssignedTo)
-                                         .Include(t => t.TaskCreatedBy)
+                                         .Include(t => t.CreatedBy)
                                          .ToListAsync();
 
-            // Fetch all projects. In a real application, you might filter this
-            // based on user involvement (e.g., projects they created or are assigned to).
             var allProjects = await _context.Projects
-                                            .Include(p => p.CreatedBy) // Include the user who created the project
+                                            .Include(p => p.CreatedBy)
                                             .ToListAsync();
 
-            // Populate the DashboardViewModel with the fetched data.
             var viewModel = new DashboardViewModel
             {
                 Username = currentUser.Username,
-                Role = currentUser.Role?.Title ?? "Unknown Role", // Safely get role title, default if null
+                Role = currentUser.Role?.Title ?? "Unknown Role",
                 CurrentUserId = currentUserId,
-                // Filter tasks assigned to the current user
-                AssignedToMeTasks = allTasks.Where(t => t.AssignedToUserId == currentUserId).ToList(),
-                // Filter tasks by their status
-                ToDoTasks = allTasks.Where(t => t.TaskStatus == "To Do").ToList(),
-                InProgressTasks = allTasks.Where(t => t.TaskStatus == "In Progress").ToList(),
-                CompletedTasks = allTasks.Where(t => t.TaskStatus == "Done").ToList(), // Changed from "Completed" to "Done"
-                // Assign all projects (consider filtering for large datasets)
+                AssignedToMeTickets = allTickets.Where(t => t.AssignedToUserId == currentUserId).ToList(),
+                ToDoTickets = allTickets.Where(t => t.Status == "To Do").ToList(),
+                InProgressTickets = allTickets.Where(t => t.Status == "In Progress").ToList(),
+                InReviewTickets = allTickets.Where(t => t.Status == "In Review").ToList(),
+                CompletedTickets = allTickets.Where(t => t.Status == "Done").ToList(),
                 Projects = allProjects
             };
 
@@ -84,169 +77,144 @@ namespace StackFlow.Controllers
         }
 
         /// <summary>
-        /// Displays the form for creating a new task.
-        /// Populates dropdowns for Project and AssignedToUser.
+        /// Displays the form for creating a new ticket.
+        /// Accessible only to Admin and Project Managers.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> CreateTask()
+        [Authorize(Roles = "Admin,Project Manager")]
+        public async Task<IActionResult> CreateTicket()
         {
-            // Fetch all projects to populate the Project dropdown
             ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName");
-
-            // Fetch all users to populate the AssignedTo dropdown
             ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username");
-
-            // Define consistent Task Statuses and Priorities
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" });
-            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" });
-
-
-            // Initialize a new Task model to bind to the form
-            return View(new StackFlow.Models.Task());
+            ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" });
+            ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" });
+            return View(new Ticket());
         }
 
         /// <summary>
-        /// Handles the submission of the new task creation form.
+        /// Handles the submission of the new ticket creation form.
+        /// Accessible only to Admin and Project Managers.
         /// </summary>
-        /// <param name="task">The Task model populated from the form.</param>
+        /// <param name="ticket">The Ticket model populated from the form.</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateTask([Bind("TaskTitle,TaskDescription,ProjectId,AssignedToUserId,TaskStatus,TaskPriority,TaskDueDate")] StackFlow.Models.Task task)
+        [Authorize(Roles = "Admin,Project Manager")]
+        public async Task<IActionResult> CreateTicket([Bind("Title,Description,ProjectId,AssignedToUserId,Status,Priority,DueDate")] Ticket ticket)
         {
-            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
-            // These errors can arise if the model binder attempts to validate these properties
-            // even when they're not part of the input, especially if they're non-nullable
-            // and backed by required foreign keys or collections.
-            ModelState.Remove("Project"); // Exclude Project navigation property
-            ModelState.Remove("AssignedTo"); // Exclude AssignedTo navigation property
-            ModelState.Remove("TaskComments"); // Exclude TaskComments navigation property
-            ModelState.Remove("TaskCreatedBy"); // This is the navigation property
-            ModelState.Remove("TaskCreatedByUserId"); // If this is also causing issues, remove it too
+            // Remove navigation properties from ModelState validation, as they are not posted from the form
+            ModelState.Remove("Project");
+            ModelState.Remove("AssignedTo");
+            ModelState.Remove("Comments");
+            ModelState.Remove("CreatedBy");
+            ModelState.Remove("CreatedByUserId");
+            ModelState.Remove("CreatedAt");
 
-
-            // Get the current user's ID to set as the creator of the task
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
-                // If user ID is invalid, return unauthorized or redirect to login.
-                TempData["ErrorMessage"] = "Authentication error: Could not identify user for task creation.";
+                TempData["ErrorMessage"] = "Authentication error: Could not identify user for ticket creation.";
                 return RedirectToAction("Login", "Account");
             }
 
-            // Manually set properties that are not part of the form binding
-            task.TaskCreatedByUserId = currentUserId; // Set this BEFORE ModelState.IsValid check
-            task.TaskCreatedAt = DateTime.UtcNow;
+            ticket.CreatedByUserId = currentUserId;
+            ticket.CreatedAt = DateTime.UtcNow;
 
-            // Validate the model based on data annotations
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Add(task); // Add the new task to the database context
-                    await _context.SaveChangesAsync(); // Save changes
-                    TempData["SuccessMessage"] = $"Task '{task.TaskTitle}' created successfully!";
-                    return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+                    _context.Add(ticket);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' created successfully!";
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was created by {User.Identity.Name}.");
+
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception (e.g., using ILogger)
-                    TempData["ErrorMessage"] = $"Error creating task: {ex.Message}";
-                    // Re-populate ViewBags before returning the view
-                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
-                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
-                    ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
-                    ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
-                    return View(task); // Stay on the create page with error
+                    TempData["ErrorMessage"] = $"Error creating ticket: {ex.Message}";
+                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", ticket.ProjectId);
+                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", ticket.AssignedToUserId);
+                    ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, ticket.Status);
+                    ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, ticket.Priority);
+                    return View(ticket);
                 }
             }
 
-            // If ModelState is not valid, re-populate ViewBag and return the view with errors
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
-            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
-            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
-            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", ticket.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", ticket.AssignedToUserId);
+            ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, ticket.Status);
+            ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, ticket.Priority);
 
-            // --- DEBUGGING: Print validation errors to console ---
             foreach (var modelStateEntry in ModelState.Values)
             {
                 foreach (var error in modelStateEntry.Errors)
                 {
-                    Console.WriteLine($"Validation Error (CreateTask): {error.ErrorMessage}");
+                    Console.WriteLine($"Validation Error (CreateTicket): {error.ErrorMessage}");
                 }
             }
-            // --- END DEBUGGING ---
-
-            return View(task); // Return the view with validation errors
+            return View(ticket);
         }
 
         /// <summary>
         /// Displays the form for creating a new project.
+        /// Accessible only to Admin users.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public IActionResult CreateProject()
         {
-            // Define consistent Project Statuses based on DB CHECK constraint
             ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" });
-            return View(new Project()); // Return a new Project model
+            return View(new Project());
         }
 
         /// <summary>
         /// Handles the submission of the new project creation form.
+        /// Accessible only to Admin users.
         /// </summary>
         /// <param name="project">The Project model populated from the form.</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // Updated [Bind] attribute to exclude navigation properties 'CreatedBy' and 'Tasks'
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateProject([Bind("ProjectName,ProjectDescription,ProjectStartDate,ProjectEndDate,ProjectStatus")] Project project)
         {
-            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
-            // These errors can arise if the model binder attempts to validate these properties
-            // even when they're not part of the input, especially if they're non-nullable
-            // and backed by required foreign keys or collections.
             ModelState.Remove("CreatedBy");
-            ModelState.Remove("Tasks");
-            // Also explicitly remove CreatedByUserId as we are setting it manually
+            ModelState.Remove("Tickets");
             ModelState.Remove("CreatedByUserId");
 
-
-            // Get the current user's ID to set as the creator of the project
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
-                // If user ID is invalid, return unauthorized or redirect to login.
                 TempData["ErrorMessage"] = "Authentication error: Could not identify user.";
                 return RedirectToAction("Login", "Account");
             }
 
-            // Manually set the CreatedByUserId BEFORE checking ModelState.IsValid
-            // This ensures that the foreign key property, which might be implicitly required, has a value.
             project.CreatedByUserId = currentUserId;
 
-            // Validate the model based on data annotations
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Add(project); // Add the new project to the database context
-                    await _context.SaveChangesAsync(); // Save changes
+                    _context.Add(project);
+                    await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = $"Project '{project.ProjectName}' created successfully!";
-                    return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", $"Project '{project.ProjectName}' was created by {User.Identity.Name}.");
+
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception (e.g., using ILogger)
                     TempData["ErrorMessage"] = $"Error creating project: {ex.Message}";
-                    // Re-populate ViewBag for project statuses before returning view
                     ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" }, project.ProjectStatus);
-                    return View(project); // Stay on the create page with error
+                    return View(project);
                 }
             }
-            // If ModelState is not valid, return the view with errors
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
             ViewBag.ProjectStatuses = new SelectList(new List<string> { "Active", "Completed", "On Hold" }, project.ProjectStatus);
 
-            // --- DEBUGGING: Print validation errors to console ---
             foreach (var modelStateEntry in ModelState.Values)
             {
                 foreach (var error in modelStateEntry.Errors)
@@ -254,263 +222,527 @@ namespace StackFlow.Controllers
                     Console.WriteLine($"Validation Error (CreateProject): {error.ErrorMessage}");
                 }
             }
-            // --- END DEBUGGING ---
-
             return View(project);
         }
 
         /// <summary>
-        /// Displays the detailed view of a single task, including its comments.
+        /// Displays the detailed view of a single ticket, including its comments.
+        /// Accessible to all authenticated users.
         /// </summary>
-        /// <param name="id">The ID of the task to display.</param>
+        /// <param name="id">The ID of the ticket to view.</param>
         [HttpGet]
-        public async Task<IActionResult> TaskDetails(int id)
+        [AllowAnonymous]
+        public async Task<IActionResult> TicketDetails(int id)
         {
-            // Fetch the specific task by ID, eagerly loading all related data:
-            // Project, AssignedTo User, TaskCreatedBy User, and all TaskComments with their associated Users.
-            var task = await _context.Tasks
+            var ticket = await _context.Tickets
                                      .Include(t => t.Project)
                                      .Include(t => t.AssignedTo)
-                                     .Include(t => t.TaskCreatedBy)
-                                     .Include(t => t.TaskComments)
-                                        .ThenInclude(tc => tc.User) // This loads the User for each TaskComment
+                                     .Include(t => t.CreatedBy)
+                                     .Include(t => t.Comments)
+                                        .ThenInclude(tc => tc.User)
                                      .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (task == null)
+            if (ticket == null)
             {
-                return NotFound(); // Return 404 if task not found
+                return NotFound();
             }
 
-            // Map the Task model to the TaskViewModel for display.
-            // This allows for including additional computed properties or flattening navigation properties.
-            var taskViewModel = new TaskViewModel
+            var ticketViewModel = new TicketViewModel
             {
-                Id = task.Id,
-                TaskTitle = task.TaskTitle,
-                TaskDescription = task.TaskDescription,
-                ProjectId = task.ProjectId,
-                Project = task.Project,
-                AssignedToUserId = task.AssignedToUserId,
-                AssignedTo = task.AssignedTo,
-                TaskStatus = task.TaskStatus,
-                TaskPriority = task.TaskPriority,
-                TaskCreatedByUserId = task.TaskCreatedByUserId,
-                TaskCreatedBy = task.TaskCreatedBy,
-                TaskCreatedAt = task.TaskCreatedAt,
-                TaskDueDate = task.TaskDueDate,
-                TaskCompletedAt = task.TaskCompletedAt,
-                Comments = task.TaskComments.OrderBy(c => c.CommentCreatedAt).ToList(), // Order comments by creation date
-                AssignedToUsername = task.AssignedTo?.Username, // Null-conditional operator for safety
-                ProjectName = task.Project?.ProjectName,
-                CreatedByUsername = task.TaskCreatedBy?.Username
+                Id = ticket.Id,
+                Title = ticket.Title,
+                Description = ticket.Description,
+                ProjectId = ticket.ProjectId,
+                Project = ticket.Project,
+                AssignedToUserId = ticket.AssignedToUserId,
+                AssignedTo = ticket.AssignedTo,
+                Status = ticket.Status,
+                Priority = ticket.Priority,
+                CreatedByUserId = ticket.CreatedByUserId,
+                CreatedBy = ticket.CreatedBy,
+                CreatedAt = ticket.CreatedAt,
+                DueDate = ticket.DueDate,
+                CompletedAt = ticket.CompletedAt,
+                Comments = ticket.Comments.OrderBy(c => c.CommentCreatedAt).ToList(),
+                AssignedToUsername = ticket.AssignedTo?.Username,
+                ProjectName = ticket.Project?.ProjectName,
+                CreatedByUsername = ticket.CreatedBy?.Username
             };
 
-            return View(taskViewModel);
+            // Force a default selected value for the dropdown if Model.Status is null or empty
+            var currentStatus = string.IsNullOrEmpty(ticket.Status) ? "To Do" : ticket.Status;
+
+            // --- FIX: Create a list of SelectListItem explicitly to ensure values are set ---
+            var statusOptions = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "To Do", Text = "To Do", Selected = (currentStatus == "To Do") },
+                new SelectListItem { Value = "In Progress", Text = "In Progress", Selected = (currentStatus == "In Progress") },
+                new SelectListItem { Value = "In Review", Text = "In Review", Selected = (currentStatus == "In Review") },
+                new SelectListItem { Value = "Done", Text = "Done", Selected = (currentStatus == "Done") }
+            };
+            ViewBag.TicketStatuses = new SelectList(statusOptions, "Value", "Text", currentStatus);
+
+
+            return View(ticketViewModel);
         }
 
         /// <summary>
-        /// Handles the submission for adding a new comment to a task.
+        /// Handles the submission for updating a ticket's status from the Ticket Details page.
+        /// Accessible to all authenticated users.
         /// </summary>
-        /// <param name="taskId">The ID of the task to add the comment to.</param>
-        /// <param name="commentText">The text content of the comment.</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddComment(int taskId, string commentText)
+        [AllowAnonymous]
+        public async Task<IActionResult> UpdateTicketStatus(int ticketId, string newStatus)
         {
-            // Get the current user's ID
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdString, out int currentUserId))
             {
-                // If user ID is invalid, return unauthorized or redirect to login.
+                TempData["ErrorMessage"] = "Authentication error: Could not identify user for status update.";
                 return Unauthorized();
             }
 
-            // Basic validation for comment text
-            if (string.IsNullOrWhiteSpace(commentText))
+            var ticket = await _context.Tickets.FindAsync(ticketId);
+            if (ticket == null)
             {
-                // Add a model error and redirect back to the task details.
-                // In a real app, you might want to display this error more gracefully.
-                ModelState.AddModelError("commentText", "Comment cannot be empty.");
-                return RedirectToAction(nameof(TaskDetails), new { id = taskId });
+                return NotFound();
             }
 
-            // Create a new TaskComment instance
-            var taskComment = new TaskComment
+            // Trim whitespace from newStatus for robust comparison
+            newStatus = newStatus?.Trim();
+
+            var allowedStatuses = new List<string> { "To Do", "In Progress", "In Review", "Done" };
+            if (!allowedStatuses.Contains(newStatus))
             {
-                TaskId = taskId,
+                // Enhance error message to show the problematic value
+                TempData["ErrorMessage"] = $"Invalid ticket status provided: '{newStatus}'. Expected one of: {string.Join(", ", allowedStatuses)}.";
+                return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
+            }
+
+            string oldStatus = ticket.Status;
+            ticket.Status = newStatus;
+            if (newStatus == "Done" && !ticket.CompletedAt.HasValue)
+            {
+                ticket.CompletedAt = DateTime.UtcNow;
+            }
+            else if (newStatus != "Done" && ticket.CompletedAt.HasValue)
+            {
+                ticket.CompletedAt = null;
+            }
+
+            try
+            {
+                _context.Update(ticket);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' status updated to '{newStatus}' successfully!";
+
+                await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' status changed from '{oldStatus}' to '{newStatus}' by {User.Identity.Name}.");
+
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating ticket status: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
+        }
+
+
+        /// <summary>
+        /// Handles the submission for adding a new comment to a ticket.
+        /// Accessible to all authenticated users.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [AllowAnonymous]
+        public async Task<IActionResult> AddComment(int ticketId, string commentText)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdString, out int currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(commentText))
+            {
+                ModelState.AddModelError("commentText", "Comment cannot be empty.");
+                TempData["ErrorMessage"] = "Comment cannot be empty.";
+                return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
+            }
+
+            var ticket = await _context.Tickets.FirstOrDefaultAsync(t => t.Id == ticketId);
+            if (ticket == null)
+            {
+                TempData["ErrorMessage"] = "Ticket not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var ticketComment = new TicketComment
+            {
+                TicketId = ticketId,
                 UserId = currentUserId,
-                CommentText = commentText.Trim(), // Trim whitespace
+                CommentText = commentText.Trim(),
                 CommentCreatedAt = DateTime.UtcNow
             };
 
-            _context.TaskComments.Add(taskComment); // Add the comment to the database context
-            await _context.SaveChangesAsync(); // Save changes
+            _context.TicketComments.Add(ticketComment);
+            await _context.SaveChangesAsync();
 
-            // Redirect back to the TaskDetails page for the same task
-            return RedirectToAction(nameof(TaskDetails), new { id = taskId });
+            TempData["SuccessMessage"] = "Comment added successfully!";
+            await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"New comment on ticket '{ticket.Title}' by {User.Identity.Name}.");
+
+            return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
         }
 
         /// <summary>
-        /// Displays the form for editing an existing task.
+        /// Displays the form for editing an existing ticket.
+        /// Accessible only to Admin and Project Managers.
         /// </summary>
-        /// <param name="id">The ID of the task to edit.</param>
+        /// <param name="id">The ID of the ticket to edit.</param>
         [HttpGet]
-        public async Task<IActionResult> EditTask(int id)
+        [Authorize(Roles = "Admin,Project Manager")]
+        public async Task<IActionResult> EditTicket(int id)
         {
-            var task = await _context.Tasks.FindAsync(id); // Find the task by ID
-            if (task == null)
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
             {
-                return NotFound(); // Return 404 if task not found
+                return NotFound();
             }
 
-            // Populate dropdowns similar to CreateTask for Project and AssignedToUser
-            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
-            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", ticket.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username");
+            ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, ticket.Status);
+            ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, ticket.Priority);
 
-            // Populate dropdown for TaskStatus and TaskPriority (using consistent options)
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus); // Updated to match DB
-            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
-
-            return View(task); // Pass the found task to the view
+            return View(ticket);
         }
 
         /// <summary>
-        /// Handles the submission of the edited task form.
+        /// Handles the submission of the edited ticket form.
+        /// Accessible only to Admin and Project Managers.
         /// </summary>
-        /// <param name="id">The ID of the task being edited.</param>
-        /// <param name="task">The Task model populated from the form.</param>
+        /// <param name="id">The ID of the ticket being edited.</param>
+        /// <param name="ticket">The Ticket model populated from the form.</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditTask(int id, [Bind("Id,TaskTitle,TaskDescription,ProjectId,AssignedToUserId,TaskStatus,TaskPriority,TaskDueDate,TaskCompletedAt")] StackFlow.Models.Task task)
+        [Authorize(Roles = "Admin,Project Manager")]
+        public async Task<IActionResult> EditTicket(int id, [Bind("Id,Title,Description,ProjectId,AssignedToUserId,Status,Priority,DueDate,CompletedAt")] Ticket ticket)
         {
-            if (id != task.Id)
+            if (id != ticket.Id)
             {
-                return NotFound(); // Mismatch in ID, return 404
+                return NotFound();
             }
 
-            // IMPORTANT: Remove model state errors for navigation properties that are not bound from the form.
-            // These errors can arise if the model binder attempts to validate these properties
-            // even when they're not part of the input, especially if they're non-nullable
-            // and backed by required foreign keys or collections.
+            // Remove navigation properties from ModelState validation, as they are not posted from the form
             ModelState.Remove("Project");
             ModelState.Remove("AssignedTo");
-            ModelState.Remove("TaskComments");
-            ModelState.Remove("TaskCreatedBy");
-            ModelState.Remove("TaskCreatedByUserId");
+            ModelState.Remove("Comments");
+            ModelState.Remove("CreatedBy");
+            ModelState.Remove("CreatedByUserId");
+            ModelState.Remove("CreatedAt");
 
-
-            // Since TaskCreatedByUserId is likely not sent from the form but is required
-            // in the model, ensure it's re-added to the model state (if valid) or manually set.
-            // If the model is from a database retrieval, it should already have this value.
-            // We assume TaskCreatedByUserId is already correctly set when loading the task for editing.
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(task); // Update the task in the database context
-                    await _context.SaveChangesAsync(); // Save changes
-                    TempData["SuccessMessage"] = $"Task '{task.TaskTitle}' updated successfully!";
+                    // Fetch the original ticket to preserve CreatedByUserId and CreatedAt
+                    var originalTicket = await _context.Tickets.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
+                    if (originalTicket == null)
+                    {
+                        return NotFound();
+                    }
+                    ticket.CreatedByUserId = originalTicket.CreatedByUserId;
+                    ticket.CreatedAt = originalTicket.CreatedAt;
+
+
+                    _context.Update(ticket);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' updated successfully!";
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was updated by {User.Identity.Name}.");
+
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    // Check if the task actually exists before throwing error
-                    if (!await _context.Tasks.AnyAsync(e => e.Id == task.Id))
+                    if (!await _context.Tickets.AnyAsync(e => e.Id == ticket.Id))
                     {
                         return NotFound();
                     }
                     else
                     {
-                        throw; // Re-throw if it's a genuine concurrency issue
+                        throw;
                     }
                 }
-                catch (Exception ex) // Catch other potential exceptions during save
+                catch (Exception ex)
                 {
-                    TempData["ErrorMessage"] = $"Error updating task: {ex.Message}";
-                    // Re-populate ViewBags before returning the view
-                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
-                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
-                    ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus);
-                    ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
-                    return View(task);
+                    TempData["ErrorMessage"] = $"Error updating ticket: {ex.Message}";
+                    ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", ticket.ProjectId);
+                    ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", ticket.AssignedToUserId);
+                    ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, ticket.Status);
+                    ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, ticket.Priority);
+                    return View(ticket);
                 }
-                return RedirectToAction(nameof(Index)); // Redirect to dashboard on success
+                return RedirectToAction(nameof(Index));
             }
 
-            // If ModelState is not valid, re-populate ViewBags and return the view with errors
             TempData["ErrorMessage"] = "Please correct the errors in the form.";
-            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", task.ProjectId);
-            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", task.AssignedToUserId);
-            ViewBag.TaskStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, task.TaskStatus); // Updated to match DB
-            ViewBag.TaskPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, task.TaskPriority);
+            ViewBag.Projects = new SelectList(await _context.Projects.ToListAsync(), "Id", "ProjectName", ticket.ProjectId);
+            ViewBag.Users = new SelectList(await _context.Users.ToListAsync(), "Id", "Username", ticket.AssignedToUserId);
+            ViewBag.TicketStatuses = new SelectList(new List<string> { "To Do", "In Progress", "In Review", "Done" }, ticket.Status);
+            ViewBag.TicketPriorities = new SelectList(new List<string> { "Low", "Medium", "High" }, ticket.Priority);
 
-            // --- DEBUGGING: Print validation errors to console ---
             foreach (var modelStateEntry in ModelState.Values)
             {
                 foreach (var error in modelStateEntry.Errors)
                 {
-                    Console.WriteLine($"Validation Error (EditTask): {error.ErrorMessage}");
+                    Console.WriteLine($"Validation Error (EditTicket): {error.ErrorMessage}");
                 }
             }
-            // --- END DEBUGGING ---
-
-            return View(task); // Return the view with validation errors
+            return View(ticket);
         }
 
         /// <summary>
-        /// Displays a report of projects with their task statistics.
+        /// POST action to delete a ticket.
+        /// Accessible only to Admin and Project Managers.
+        /// </summary>
+        /// <param name="id">The ID of the ticket to delete.</param>
+        [HttpPost, ActionName("DeleteTicket")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Project Manager")]
+        public async Task<IActionResult> DeleteTicketConfirmed(int id)
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
+            {
+                TempData["ErrorMessage"] = "Ticket not found.";
+                return NotFound();
+            }
+
+            try
+            {
+                _context.Tickets.Remove(ticket);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' deleted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was deleted by {User.Identity.Name}.");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting ticket: {ex.Message}";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// POST action to delete a project and its associated tickets.
+        /// Accessible only to Admin users.
+        /// </summary>
+        /// <param name="id">The ID of the project to delete.</param>
+        [HttpPost, ActionName("DeleteProject")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteProjectConfirmed(int id)
+        {
+            var project = await _context.Projects
+                                        .Include(p => p.Tickets)
+                                        .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (project == null)
+            {
+                TempData["ErrorMessage"] = "Project not found.";
+                return NotFound();
+            }
+
+            try
+            {
+                // Remove associated tickets first if not configured for cascade delete in DB
+                _context.Tickets.RemoveRange(project.Tickets);
+                _context.Projects.Remove(project);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Project '{project.ProjectName}' and its {project.Tickets.Count} associated tickets deleted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", $"Project '{project.ProjectName}' was deleted by {User.Identity.Name}.");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting project: {ex.Message}";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// Displays a report of projects with their ticket statistics.
+        /// Accessible only to Admin users.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ProjectReports()
         {
             var projects = await _context.Projects
-                                         .Include(p => p.Tasks) // Eager load tasks for each project
+                                         .Include(p => p.Tickets)
                                          .OrderBy(p => p.ProjectName)
                                          .ToListAsync();
 
             var projectReports = projects.Select(p => new ProjectReportViewModel
             {
                 Project = p,
-                TotalTasks = p.Tasks.Count,
-                CompletedTasks = p.Tasks.Count(t => t.TaskStatus == "Done"), // Changed from "Completed" to "Done"
-                InProgressTasks = p.Tasks.Count(t => t.TaskStatus == "In Progress"),
-                ToDoTasks = p.Tasks.Count(t => t.TaskStatus == "To Do")
+                TotalTickets = p.Tickets.Count,
+                CompletedTickets = p.Tickets.Count(t => t.Status == "Done"),
+                InProgressTickets = p.Tickets.Count(t => t.Status == "In Progress"),
+                ToDoTickets = p.Tickets.Count(t => t.Status == "To Do"),
+                InReviewTickets = p.Tickets.Count(t => t.Status == "In Review")
             }).ToList();
 
             return View(projectReports);
         }
 
         /// <summary>
-        /// Displays a report of all users and their assigned task statistics.
+        /// Displays a report of all users and their assigned ticket statistics.
+        /// Accessible only to Admin users.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UserReports()
         {
-            // Fetch all users and include their assigned tasks AND their roles
             var users = await _context.Users
-                                      .Include(u => u.AssignedTasks) // Eager load tasks assigned to each user
-                                      .Include(u => u.Role) // Eager load the Role navigation property
+                                      .Include(u => u.AssignedTickets)
+                                      .Include(u => u.Role)
                                       .OrderBy(u => u.Username)
                                       .ToListAsync();
 
             var userReports = users.Select(u => new UserReportViewModel
             {
                 User = u,
-                TotalTasksAssigned = u.AssignedTasks.Count,
-                CompletedTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "Done"), // Changed from "Completed" to "Done"
-                InProgressTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "In Progress"),
-                ToDoTasksAssigned = u.AssignedTasks.Count(t => t.TaskStatus == "To Do"),
-                AssignedTasks = u.AssignedTasks.Select(t => new TaskViewModel
+                TotalTicketsAssigned = u.AssignedTickets.Count,
+                CompletedTicketsAssigned = u.AssignedTickets.Count(t => t.Status == "Done"),
+                InProgressTicketsAssigned = u.AssignedTickets.Count(t => t.Status == "In Progress"),
+                AssignedTickets = u.AssignedTickets.Select(t => new TicketViewModel
                 {
                     Id = t.Id,
-                    TaskTitle = t.TaskTitle,
-                    TaskStatus = t.TaskStatus,
-                    TaskPriority = t.TaskPriority,
-                    TaskDueDate = t.TaskDueDate
-                }).ToList() // Populate a simplified list of assigned tasks
+                    Title = t.Title,
+                    Status = t.Status,
+                    Priority = t.Priority,
+                    DueDate = t.DueDate
+                }).ToList(),
+                ToDoTicketsAssigned = u.AssignedTickets.Count(t => t.Status == "To Do"),
+                InReviewTicketsAssigned = u.AssignedTickets.Count(t => t.Status == "In Review")
             }).ToList();
 
+            // Fetch all roles for the "Change Role" dropdown
+            ViewBag.Roles = new SelectList(await _context.Roles.ToListAsync(), "Id", "Title");
+
             return View(userReports);
+        }
+
+        /// <summary>
+        /// POST action to update a user's role.
+        /// Accessible only to Admin users.
+        /// </summary>
+        /// <param name="userId">The ID of the user whose role is to be updated.</param>
+        /// <param name="newRoleId">The ID of the new role.</param>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateUserRole(int userId, int newRoleId)
+        {
+            var userToUpdate = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
+            if (userToUpdate == null)
+            {
+                TempData["ErrorMessage"] = "User not found.";
+                return NotFound();
+            }
+
+            var newRole = await _context.Roles.FindAsync(newRoleId);
+            if (newRole == null)
+            {
+                TempData["ErrorMessage"] = "New role not found.";
+                return NotFound();
+            }
+
+            // Prevent an admin from changing their own role (optional but recommended)
+            var currentAdminIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(currentAdminIdString, out int currentAdminId) && currentAdminId == userId)
+            {
+                TempData["ErrorMessage"] = "You cannot change your own role.";
+                return RedirectToAction(nameof(UserReports));
+            }
+
+            string oldRoleTitle = userToUpdate.Role?.Title ?? "Unknown";
+            userToUpdate.RoleId = newRoleId;
+
+            try
+            {
+                _context.Update(userToUpdate);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"User '{userToUpdate.Username}' role updated from '{oldRoleTitle}' to '{newRole.Title}' successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveUserRoleUpdate", userToUpdate.Id, newRole.Title, $"User '{userToUpdate.Username}' had their role changed to '{newRole.Title}' by {User.Identity.Name}.");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error updating user role: {ex.Message}";
+                // Log the exception
+            }
+            return RedirectToAction(nameof(UserReports));
+        }
+
+        /// <summary>
+        /// POST action to delete a user and reassign their tickets to the deleting admin.
+        /// Accessible only to Admin users.
+        /// </summary>
+        /// <param name="id">The ID of the user to delete.</param>
+        [HttpPost, ActionName("DeleteUser")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUserConfirmed(int id)
+        {
+            var userToDelete = await _context.Users
+                                             .Include(u => u.AssignedTickets)
+                                             .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (userToDelete == null)
+            {
+                TempData["ErrorMessage"] = "User not found.";
+                return NotFound();
+            }
+
+            // Prevent an admin from deleting themselves (optional but recommended)
+            var currentAdminIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(currentAdminIdString, out int currentAdminId) && currentAdminId == id)
+            {
+                TempData["ErrorMessage"] = "You cannot delete your own account.";
+                return RedirectToAction(nameof(UserReports));
+            }
+
+            try
+            {
+                // Get the current admin user (who is performing the deletion)
+                var adminUser = await _context.Users.FindAsync(currentAdminId);
+                if (adminUser == null)
+                {
+                    TempData["ErrorMessage"] = "Admin user not found for ticket reassignment.";
+                    return RedirectToAction(nameof(UserReports));
+                }
+
+                // Reassign tickets from the user being deleted to the admin
+                foreach (var ticket in userToDelete.AssignedTickets)
+                {
+                    ticket.AssignedToUserId = adminUser.Id;
+                }
+                _context.Tickets.UpdateRange(userToDelete.AssignedTickets);
+
+                // Delete the user
+                _context.Users.Remove(userToDelete);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"User '{userToDelete.Username}' deleted and their tickets reassigned to {adminUser.Username}.";
+                await _hubContext.Clients.All.SendAsync("ReceiveUserRoleUpdate", userToDelete.Id, "Deleted", $"User '{userToDelete.Username}' was deleted by {User.Identity.Name} and tickets reassigned.");
+
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting user: {ex.Message}";
+                // Log the exception
+            }
+            return RedirectToAction(nameof(UserReports));
         }
     }
 }

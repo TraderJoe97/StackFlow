@@ -4,15 +4,15 @@
     ViewData["Title"] = "Project Reports";
 }
 
-<div class="card shadow-sm border-0 rounded-4 p-4 mt-4">
-    <h2 class="card-title text-center mb-4 fw-bold text-success">
-        <i class="bi bi-bar-chart-fill me-2"></i>Project Reports
+<div class="card shadow-lg border-0 rounded-4 p-4 mt-4 mb-4">
+    <h2 class="card-title text-center mb-4 fw-bold text-success display-6">
+        <i class="bi bi-bar-chart-fill me-2"></i> Project Reports
     </h2>
-    <hr />
+    <hr class="mb-4" />
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info text-center" role="alert">
+        <div class="alert alert-info text-center bg-transparent border-0" role="alert">
             <i class="bi bi-info-circle me-2"></i>No projects found to generate reports.
         </div>
     }
@@ -24,12 +24,13 @@
                     <tr>
                         <th scope="col">Project Name</th>
                         <th scope="col">Status</th>
-                        <th scope="col" class="text-center">Total Tasks</th>
-                        <th scope="col" class="text-center">Completed</th>
-                        <th scope="col" class="text-center">In Progress</th>
+                        <th scope="col" class="text-center">Total Tickets</th> @* Text changed from Total Tasks *@
                         <th scope="col" class="text-center">To Do</th>
+                        <th scope="col" class="text-center">In Progress</th>
+                        <th scope="col" class="text-center">In Review</th>
+                        <th scope="col" class="text-center">Done</th>
                         <th scope="col">Created By</th>
-                        <th scope="col"></th>
+                        <th scope="col" class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,30 +42,96 @@
                                 <small class="text-muted">@report.Project.ProjectDescription</small>
                             </td>
                             <td>
-                                <span class="badge @(report.Project.ProjectStatus == "Active" ? "bg-primary" : report.Project.ProjectStatus == "Completed" ? "bg-success" : "bg-secondary")">
-                                    @report.Project.ProjectStatus
-                                </span>
-                            </td>
-                            <td class="text-center"><span class="badge bg-dark rounded-pill px-3 py-2">@report.TotalTasks</span></td>
-                            <td class="text-center"><span class="badge bg-success rounded-pill px-3 py-2">@report.CompletedTasks</span></td>
-                            <td class="text-center"><span class="badge bg-warning text-dark rounded-pill px-3 py-2">@report.InProgressTasks</span></td>
-                            <td class="text-center"><span class="badge bg-info rounded-pill px-3 py-2">@report.ToDoTasks</span></td>
-                            <td>@report.Project.CreatedBy?.Username</td>
-                            <td>
-                                <a asp-action="TaskDetails" asp-route-id="@report.Project.Id" class="btn btn-outline-primary btn-sm rounded-pill">
-                                    <i class="bi bi-eye-fill"></i> View Tasks
-                                </a>
+                                <span class="badge rounded-pill px-3 py-2
+                                            @(report.Project.ProjectStatus == "Active" ? "bg-primary" :
+                                                                            report.Project.ProjectStatus == "Completed" ? "bg-success" : "bg-secondary")">
+                            @report.Project.ProjectStatus
+                        </span>
+                    </td>
+                    <td class="text-center"><span class="badge bg-dark rounded-pill px-3 py-2">@report.TotalTickets</span></td> @* Property changed from TotalTasks to TotalTickets *@
+                    <td class="text-center"><span class="badge bg-info rounded-pill px-3 py-2">@report.ToDoTickets</span></td> @* Property changed from ToDoTasks to ToDoTickets *@
+                    <td class="text-center"><span class="badge bg-warning text-dark rounded-pill px-3 py-2">@report.InProgressTickets</span></td> @* Property changed from InProgressTasks to InProgressTickets *@
+                    <td class="text-center"><span class="badge bg-purple rounded-pill px-3 py-2">@report.InReviewTickets</span></td> @* Property changed from InReviewTasks to InReviewTickets *@
+                    <td class="text-center"><span class="badge bg-success rounded-pill px-3 py-2">@report.CompletedTickets</span></td> @* Property changed from CompletedTasks to CompletedTickets *@
+                    <td>@report.Project.CreatedBy?.Username</td>
+                    <td class="text-center text-nowrap">
+                        <a asp-action="TicketDetails" asp-route-id="@report.Project.Id" class="btn btn-outline-primary btn-sm rounded-pill animate-btn me-2">
+                            @* Action changed from TaskDetails to TicketDetails *@
+                            <i class="bi bi-eye-fill"></i> View Tickets @* Text changed to Tickets *@
+                        </a>
+                        @* Delete Project button - only for Admins *@
+                        @if (User.IsInRole("Admin"))
+                                {
+                                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill animate-btn"
+                                            data-bs-toggle="modal" data-bs-target="#deleteProjectModal_@report.Project.Id">
+                                        <i class="bi bi-trash"></i> Delete Project
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+
+        @* Delete Project Confirmation Modals - Only for Admin *@
+        @foreach (var report in Model)
+        {
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="modal fade" id="deleteProjectModal_@report.Project.Id" tabindex="-1" aria-labelledby="deleteProjectModalLabel_@report.Project.Id" aria-hidden="true">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content rounded-4">
+                            <div class="modal-header bg-danger text-white rounded-top-4">
+                                <h5 class="modal-title" id="deleteProjectModalLabel_@report.Project.Id">Confirm Deletion</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <p>Are you sure you want to delete project <strong>@report.Project.ProjectName</strong>?</p>
+                                <p class="text-danger"><small>All @report.TotalTickets associated tickets will also be deleted.</small></p> @* Property changed from TotalTasks to TotalTickets, text changed to tickets *@
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button type="button" class="btn btn-secondary rounded-pill animate-btn" data-bs-dismiss="modal">Cancel</button>
+                                <form asp-action="DeleteProject" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@report.Project.Id" />
+                                    <button type="submit" class="btn btn-danger rounded-pill animate-btn">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     }
 
     <div class="mt-4 text-center">
-        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-lg rounded-pill animate-btn">
             <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
         </a>
     </div>
 </div>
+
+@section Scripts {
+    <!-- Any project reports specific JavaScript can go here -->
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/_ProjectReports.css" />
+    <style>
+        /* Specific theme-dependent colors if needed (for bg-purple) */
+        [data-bs-theme="light"] {
+            --bs-purple: #6f42c1;
+        }
+
+        [data-bs-theme="dark"] {
+            --bs-purple: #bb86fc;
+        }
+
+        .bg-purple {
+            background-color: var(--bs-purple) !important;
+            color: #fff !important;
+        }
+    </style>
+}

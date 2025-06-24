@@ -1,0 +1,310 @@
+﻿@model StackFlow.ViewModels.TicketViewModel
+
+@{
+    ViewData["Title"] = $"Ticket Details: {Model.Title}";
+}
+
+<div class="card shadow-lg border-0 rounded-4 p-4 mt-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <h2 class="card-title mb-0 fw-bold text-primary display-6">
+            <i class="bi bi-journal-text me-2"></i> @Model.Title
+        </h2>
+        <div class="d-flex gap-2">
+            @* Edit Ticket button - visible only to Admin and Project Managers *@
+            @if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
+            {
+                <a asp-action="EditTicket" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill shadow-sm animate-btn">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Ticket
+                </a>
+                @* Delete Ticket button - visible only to Admin and Project Managers *@
+                <button type="button" class="btn btn-danger rounded-pill shadow-sm animate-btn"
+                        data-bs-toggle="modal" data-bs-target="#deleteTicketModal_@Model.Id">
+                    <i class="bi bi-trash me-1"></i> Delete Ticket
+                </button>
+            }
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill shadow-sm animate-btn">
+                <i class="bi bi-arrow-left-circle me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+    <hr class="mb-4" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <div class="detail-section mb-4">
+                <h4 class="fw-semibold text-secondary mb-3">Description</h4>
+                <div class="card card-body rounded-3 detail-box">
+                    <p class="text-break mb-0">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="fw-semibold text-secondary mb-3">Ticket Information</h4>
+                <div class="row row-cols-1 row-cols-sm-2 g-3">
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Project</small>
+                            <p class="fw-bold mb-0">@Model.ProjectName</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Assigned To</small>
+                            <p class="fw-bold mb-0">@(string.IsNullOrWhiteSpace(Model.AssignedToUsername) ? "Unassigned" : Model.AssignedToUsername)</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Priority</small>
+                            <span class="badge rounded-pill px-3 py-2
+                                @(Model.Priority == "High" ? "bg-danger" :
+                                                                    Model.Priority == "Medium" ? "bg-secondary" : "bg-primary")">
+                                @Model.Priority
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Created By</small>
+                            <p class="fw-bold mb-0">@Model.CreatedByUsername</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Created At</small>
+                            <p class="fw-bold mb-0">@Model.CreatedAt.ToShortDateString()</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Due Date</small>
+                            <p class="fw-bold mb-0">@(Model.DueDate?.ToShortDateString() ?? "N/A")</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Completed At</small>
+                            <p class="fw-bold mb-0">@(Model.CompletedAt?.ToShortDateString() ?? "Not Completed")</p>
+                        </div>
+                    </div>
+                    @* Updated Status dropdown *@
+                    <div class="col-12">
+                        <div class="card card-body rounded-3 detail-box">
+                            <small class="text-muted mb-1">Update Status</small>
+                            <form asp-action="UpdateTicketStatus" asp-controller="Dashboard" method="post" id="updateStatusForm_@Model.Id">
+                                <input type="hidden" name="ticketId" value="@Model.Id" />
+                                <select name="newStatus" class="form-select rounded-pill" onchange="debugger; console.log('Selected value:', this.value); this.form.submit();">
+                                    @foreach (var status in ViewBag.TicketStatuses as SelectList)
+                                    {
+                                        <option value="@status.Value" selected="@(status.Value == Model.Status)">@status.Text</option>
+                                    }
+                                </select>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="comments-section">
+                <h4 class="fw-semibold text-secondary mb-3">Comments (@Model.Comments.Count)</h4>
+                <div class="card card-body rounded-3 comments-box mb-3">
+                    @if (!Model.Comments.Any())
+                    {
+                        <p class="text-muted text-center py-3 mb-0">No comments yet. Be the first to add one!</p>
+                    }
+                    else
+                    {
+                        <div class="comment-list">
+                            @foreach (var comment in Model.Comments)
+                            {
+                                <div class="comment-item mb-3 p-3 rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="fw-bold">@comment.User?.Username</small>
+                                        <small class="text-muted">@comment.CommentCreatedAt.ToShortDateString() @comment.CommentCreatedAt.ToShortTimeString()</small>
+                                    </div>
+                                    <p class="mb-0 text-break">@comment.CommentText</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="add-comment-form">
+                    <form asp-action="AddComment" method="post">
+                        <input type="hidden" name="ticketId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <label for="commentText" class="form-label fw-semibold">Add a Comment</label>
+                            <textarea id="commentText" name="commentText" class="form-control rounded-4" rows="3" placeholder="Type your comment here..." required></textarea>
+                            <span class="text-danger">@Html.ValidationMessage("commentText")</span>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary rounded-pill shadow-sm animate-btn">
+                                <i class="bi bi-chat-dots me-1"></i> Post Comment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Delete Ticket Confirmation Modal - Only for Admin and Project Manager *@
+@if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
+{
+    <div class="modal fade" id="deleteTicketModal_@Model.Id" tabindex="-1" aria-labelledby="deleteTicketModalLabel_@Model.Id" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header bg-danger text-white rounded-top-4">
+                    <h5 class="modal-title" id="deleteTicketModalLabel_@Model.Id">Confirm Deletion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>Are you sure you want to delete ticket <strong>@Model.Title</strong>?</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill animate-btn" data-bs-dismiss="modal">Cancel</button>
+                    <form asp-action="DeleteTicket" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger rounded-pill animate-btn">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+@section Styles {
+    <style>
+        /* Theme-dependent colors for badges and gradients */
+        [data-bs-theme="light"] {
+            --bs-purple: #6f42c1;
+            --bs-purple-dark: #563d7c;
+        }
+
+        [data-bs-theme="dark"] {
+            --bs-purple: #bb86fc;
+            --bs-purple-dark: #9e6ecb;
+        }
+
+        .bg-purple {
+            background-color: var(--bs-purple) !important;
+            color: #fff !important;
+        }
+
+        .bg-gradient-purple {
+            background: linear-gradient(45deg, var(--bs-purple), var(--bs-purple-dark));
+        }
+
+        .card {
+            background-color: var(--bs-card-bg);
+            border-color: var(--bs-card-border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out;
+        }
+
+            .card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,.08);
+            }
+
+        .detail-box {
+            background-color: var(--bs-body-bg); /* Use body background for inner boxes */
+            border: 1px solid var(--bs-border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        [data-bs-theme="dark"] .detail-box {
+            background-color: #2b3035; /* Slightly darker than card for contrast in dark mode */
+            border-color: #495057;
+        }
+
+        .comments-box {
+            background-color: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            max-height: 500px; /* Limit height for scrollable comments */
+            overflow-y: auto; /* Enable scrolling */
+        }
+
+        [data-bs-theme="dark"] .comments-box {
+            background-color: #2b3035;
+            border-color: #495057;
+        }
+
+        .comment-item {
+            background-color: var(--bs-card-bg);
+            border-color: var(--bs-border-color) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        [data-bs-theme="dark"] .comment-item {
+            background-color: #3f474e; /* Darker than comments-box for distinction */
+            border-color: #6c757d !important;
+        }
+
+        .comment-item:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        .form-control.rounded-pill,
+        .form-select.rounded-pill {
+            border-radius: 50rem !important;
+            padding: 0.75rem 1.25rem;
+            height: auto;
+        }
+
+        .form-control.rounded-4,
+        .form-select.rounded-4 {
+            border-radius: 0.5rem !important;
+        }
+
+        /* Dark mode specific adjustments for form elements */
+        [data-bs-theme="dark"] .form-control,
+        [data-bs-theme="dark"] .form-select,
+        [data-bs-theme="dark"] .form-control:focus,
+        [data-bs-theme="dark"] .form-select:focus {
+            background-color: #495057;
+            color: var(--bs-body-color);
+            border-color: #6c757d;
+        }
+
+            [data-bs-theme="dark"] .form-control::placeholder,
+            [data-bs-theme="dark"] .form-select option {
+                color: rgba(255, 255, 255, 0.6);
+            }
+
+        .animate-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+            .animate-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            }
+    </style>
+}

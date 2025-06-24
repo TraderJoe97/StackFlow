@@ -1,0 +1,64 @@
+﻿/* Account Pages (Login/Register) Specific Styles */
+
+/* Base styling for card and form elements to match overall theme */
+.card {
+    background-color: var(--bs-card-bg);
+    border-color: var(--bs-card-border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out;
+}
+
+/* Form control and select styling */
+.form-control.rounded-pill,
+.form-select.rounded-pill {
+    border-radius: 50rem !important; /* Fully rounded pill shape */
+    padding: 0.75rem 1.25rem;
+    height: auto; /* Allow content to dictate height */
+}
+
+.form-control.rounded-4,
+.form-select.rounded-4 {
+    border-radius: 0.5rem !important; /* Slightly more rounded than default */
+}
+
+/* Dark mode specific adjustments for form elements */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #495057; /* Darker background for inputs */
+    color: var(--bs-body-color);
+    border-color: #6c757d;
+}
+
+    [data-bs-theme="dark"] .form-control::placeholder,
+    [data-bs-theme="dark"] .form-select option {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+/* Button animation */
+.animate-btn {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+    .animate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+/* Centering for account pages */
+.account-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Ensure it takes full viewport height */
+    padding: 1rem; /* Some padding for smaller screens */
+    background-color: var(--bs-body-bg); /* Use body background for consistency */
+}
+
+/* Specific styling for the login/register card */
+.account-card {
+    max-width: 500px; /* Limit width */
+    width: 100%;
+    margin: auto; /* Center horizontally */
+}
