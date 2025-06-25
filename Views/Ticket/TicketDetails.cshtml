@@ -1,28 +1,29 @@
-﻿@model StackFlow.ViewModels.TicketViewModel
+﻿@model StackFlow.ViewModels.TicketViewModel 
+    @* Model should be TicketViewModel *@
 
 @{
-    ViewData["Title"] = $"Ticket Details: {Model.Title}";
+    ViewData["Title"] = $"Ticket Details: {Model.Title}"; @* Reverted property name *@
 }
 
 <div class="card shadow-lg border-0 rounded-4 p-4 mt-4 mb-4">
     <div class="d-flex justify-content-between align-items-start mb-3">
         <h2 class="card-title mb-0 fw-bold text-primary display-6">
-            <i class="bi bi-journal-text me-2"></i> @Model.Title
+            <i class="bi bi-journal-text me-2"></i> @Model.Title @* Reverted property name *@
         </h2>
         <div class="d-flex gap-2">
             @* Edit Ticket button - visible only to Admin and Project Managers *@
             @if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
             {
-                <a asp-action="EditTicket" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill shadow-sm animate-btn">
-                    <i class="bi bi-pencil-square me-1"></i> Edit Ticket
+                <a asp-action="EditTicket" asp-controller="Ticket" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill shadow-sm animate-btn"> @* Updated asp-controller and asp-action *@
+                    <i class="bi bi-pencil-square me-1"></i> Edit Ticket @* Reverted text *@
                 </a>
                 @* Delete Ticket button - visible only to Admin and Project Managers *@
                 <button type="button" class="btn btn-danger rounded-pill shadow-sm animate-btn"
-                        data-bs-toggle="modal" data-bs-target="#deleteTicketModal_@Model.Id">
-                    <i class="bi bi-trash me-1"></i> Delete Ticket
+                        data-bs-toggle="modal" data-bs-target="#deleteTicketModal_@Model.Id"> @* Reverted modal ID *@
+                    <i class="bi bi-trash me-1"></i> Delete Ticket @* Reverted text *@
                 </button>
             }
-            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill shadow-sm animate-btn">
+            <a asp-action="Index" asp-controller="Dashboard" class="btn btn-outline-secondary rounded-pill shadow-sm animate-btn">
                 <i class="bi bi-arrow-left-circle me-1"></i> Back to Dashboard
             </a>
         </div>
@@ -49,12 +50,12 @@
             <div class="detail-section mb-4">
                 <h4 class="fw-semibold text-secondary mb-3">Description</h4>
                 <div class="card card-body rounded-3 detail-box">
-                    <p class="text-break mb-0">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p>
+                    <p class="text-break mb-0">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p> @* Reverted property name *@
                 </div>
             </div>
 
             <div class="detail-section">
-                <h4 class="fw-semibold text-secondary mb-3">Ticket Information</h4>
+                <h4 class="fw-semibold text-secondary mb-3">Ticket Information</h4> @* Reverted text *@
                 <div class="row row-cols-1 row-cols-sm-2 g-3">
                     <div class="col">
                         <div class="card card-body rounded-3 detail-box">
@@ -71,10 +72,10 @@
                     <div class="col">
                         <div class="card card-body rounded-3 detail-box">
                             <small class="text-muted mb-1">Priority</small>
-                            <span class="badge rounded-pill px-3 py-2
+                            <span class="badge rounded-pill
                                 @(Model.Priority == "High" ? "bg-danger" :
-                                                                    Model.Priority == "Medium" ? "bg-secondary" : "bg-primary")">
-                                @Model.Priority
+                                  Model.Priority == "Medium" ? "bg-secondary" : "bg-primary")"> @* Reverted property name *@
+                                @Model.Priority @* Reverted property name *@
                             </span>
                         </div>
                     </div>
@@ -87,31 +88,31 @@
                     <div class="col">
                         <div class="card card-body rounded-3 detail-box">
                             <small class="text-muted mb-1">Created At</small>
-                            <p class="fw-bold mb-0">@Model.CreatedAt.ToShortDateString()</p>
+                            <p class="fw-bold mb-0">@Model.CreatedAt.ToShortDateString()</p> @* Reverted property name *@
                         </div>
                     </div>
                     <div class="col">
                         <div class="card card-body rounded-3 detail-box">
                             <small class="text-muted mb-1">Due Date</small>
-                            <p class="fw-bold mb-0">@(Model.DueDate?.ToShortDateString() ?? "N/A")</p>
+                            <p class="fw-bold mb-0">@(Model.DueDate?.ToShortDateString() ?? "N/A")</p> @* Reverted property name *@
                         </div>
                     </div>
                     <div class="col">
                         <div class="card card-body rounded-3 detail-box">
                             <small class="text-muted mb-1">Completed At</small>
-                            <p class="fw-bold mb-0">@(Model.CompletedAt?.ToShortDateString() ?? "Not Completed")</p>
+                            <p class="fw-bold mb-0">@(Model.CompletedAt?.ToShortDateString() ?? "Not Completed")</p> @* Reverted property name *@
                         </div>
                     </div>
-                    @* Updated Status dropdown *@
+                    @* New Status dropdown for all authenticated users *@
                     <div class="col-12">
                         <div class="card card-body rounded-3 detail-box">
                             <small class="text-muted mb-1">Update Status</small>
-                            <form asp-action="UpdateTicketStatus" asp-controller="Dashboard" method="post" id="updateStatusForm_@Model.Id">
-                                <input type="hidden" name="ticketId" value="@Model.Id" />
-                                <select name="newStatus" class="form-select rounded-pill" onchange="debugger; console.log('Selected value:', this.value); this.form.submit();">
-                                    @foreach (var status in ViewBag.TicketStatuses as SelectList)
+                            <form asp-action="UpdateTicketStatus" asp-controller="Ticket" method="post" id="updateStatusForm_@Model.Id"> @* Updated asp-controller and asp-action *@
+                                <input type="hidden" name="ticketId" value="@Model.Id" /> @* Reverted input name *@
+                                <select name="newStatus" class="form-select rounded-pill" onchange="this.form.submit()">
+                                    @foreach (var status in ViewBag.TicketStatuses as SelectList) @* Reverted ViewBag name *@
                                     {
-                                        <option value="@status.Value" selected="@(status.Value == Model.Status)">@status.Text</option>
+                                        <option value="@status.Value" selected="@(status.Value == Model.Status)">@status.Text</option> @* Reverted property name *@
                                     }
                                 </select>
                             </form>
@@ -147,8 +148,8 @@
                 </div>
 
                 <div class="add-comment-form">
-                    <form asp-action="AddComment" method="post">
-                        <input type="hidden" name="ticketId" value="@Model.Id" />
+                    <form asp-action="AddComment" asp-controller="Ticket" method="post"> @* Updated asp-controller *@
+                        <input type="hidden" name="ticketId" value="@Model.Id" /> @* Reverted input name *@
                         <div class="mb-3">
                             <label for="commentText" class="form-label fw-semibold">Add a Comment</label>
                             <textarea id="commentText" name="commentText" class="form-control rounded-4" rows="3" placeholder="Type your comment here..." required></textarea>
@@ -169,19 +170,19 @@
 @* Delete Ticket Confirmation Modal - Only for Admin and Project Manager *@
 @if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
 {
-    <div class="modal fade" id="deleteTicketModal_@Model.Id" tabindex="-1" aria-labelledby="deleteTicketModalLabel_@Model.Id" aria-hidden="true">
+    <div class="modal fade" id="deleteTicketModal_@Model.Id" tabindex="-1" aria-labelledby="deleteTicketModalLabel_@Model.Id" aria-hidden="true"> @* Reverted modal ID *@
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content rounded-4">
                 <div class="modal-header bg-danger text-white rounded-top-4">
-                    <h5 class="modal-title" id="deleteTicketModalLabel_@Model.Id">Confirm Deletion</h5>
+                    <h5 class="modal-title" id="deleteTicketModalLabel_@Model.Id">Confirm Deletion</h5> @* Reverted modal ID *@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
-                    <p>Are you sure you want to delete ticket <strong>@Model.Title</strong>?</p>
+                    <p>Are you sure you want to delete ticket <strong>@Model.Title</strong>?</p> @* Reverted text and property name *@
                 </div>
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-secondary rounded-pill animate-btn" data-bs-dismiss="modal">Cancel</button>
-                    <form asp-action="DeleteTicket" method="post" class="d-inline">
+                    <form asp-action="DeleteTicket" asp-controller="Ticket" method="post" class="d-inline"> @* Updated asp-controller and asp-action *@
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button type="submit" class="btn btn-danger rounded-pill animate-btn">
                             Delete
@@ -212,34 +213,26 @@
             --bs-purple-dark: #9e6ecb;
         }
 
-        .bg-purple {
-            background-color: var(--bs-purple) !important;
-            color: #fff !important;
-        }
-
-        .bg-gradient-purple {
-            background: linear-gradient(45deg, var(--bs-purple), var(--bs-purple-dark));
-        }
+        .bg-purple { background-color: var(--bs-purple) !important; color: #fff !important; }
+        .bg-gradient-purple { background: linear-gradient(45deg, var(--bs-purple), var(--bs-purple-dark)); }
 
         .card {
             background-color: var(--bs-card-bg);
             border-color: var(--bs-card-border-color);
             transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease-in-out;
         }
-
-            .card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,.08);
-            }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.08);
+        }
 
         .detail-box {
             background-color: var(--bs-body-bg); /* Use body background for inner boxes */
             border: 1px solid var(--bs-border-color);
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
-
         [data-bs-theme="dark"] .detail-box {
-            background-color: #2b3035; /* Slightly darker than card for contrast in dark mode */
-            border-color: #495057;
+             background-color: #2b3035; /* Slightly darker than card for contrast in dark mode */
+             border-color: #495057;
         }
 
         .comments-box {
@@ -248,10 +241,9 @@
             max-height: 500px; /* Limit height for scrollable comments */
             overflow-y: auto; /* Enable scrolling */
         }
-
         [data-bs-theme="dark"] .comments-box {
-            background-color: #2b3035;
-            border-color: #495057;
+             background-color: #2b3035;
+             border-color: #495057;
         }
 
         .comment-item {
@@ -260,12 +252,10 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
-
         [data-bs-theme="dark"] .comment-item {
             background-color: #3f474e; /* Darker than comments-box for distinction */
             border-color: #6c757d !important;
         }
-
         .comment-item:last-child {
             margin-bottom: 0 !important;
         }
@@ -276,7 +266,6 @@
             padding: 0.75rem 1.25rem;
             height: auto;
         }
-
         .form-control.rounded-4,
         .form-select.rounded-4 {
             border-radius: 0.5rem !important;
@@ -292,19 +281,18 @@
             border-color: #6c757d;
         }
 
-            [data-bs-theme="dark"] .form-control::placeholder,
-            [data-bs-theme="dark"] .form-select option {
-                color: rgba(255, 255, 255, 0.6);
-            }
+        [data-bs-theme="dark"] .form-control::placeholder,
+        [data-bs-theme="dark"] .form-select option {
+            color: rgba(255, 255, 255, 0.6);
+        }
 
         .animate-btn {
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-
-            .animate-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-            }
+        .animate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
     </style>
 }

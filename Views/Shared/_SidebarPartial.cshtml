@@ -1,4 +1,6 @@
-﻿
+﻿@* This partial now only contains the navigation links.
+   The offcanvas container is in _Layout.cshtml, and the desktop fixed sidebar
+   container is in Dashboard/Index.cshtml. *@
 <ul class="navbar-nav sidebar-nav flex-column">
     @if (User.Identity.IsAuthenticated)
     {
@@ -13,9 +15,9 @@
         @if (User.IsInRole("Admin") || User.IsInRole("Project Manager"))
         {
             <li class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Action"].ToString() == "CreateTicket" ? "active" : "")"
-                   asp-area="" asp-controller="Dashboard" asp-action="CreateTicket">
-                    <i class="bi bi-journal-plus me-2"></i> Create Ticket
+                <a class="nav-link @(ViewContext.RouteData.Values["Action"].ToString() == "CreateTicket" ? "active" : "")" @* Reverted asp-action *@
+                   asp-area="" asp-controller="Ticket" asp-action="CreateTicket"> @* Updated asp-controller and asp-action *@
+                    <i class="bi bi-journal-plus me-2"></i> Create Ticket @* Reverted text *@
                 </a>
             </li>
         }
@@ -25,19 +27,19 @@
         {
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Action"].ToString() == "CreateProject" ? "active" : "")"
-                   asp-area="" asp-controller="Dashboard" asp-action="CreateProject">
+                   asp-area="" asp-controller="Project" asp-action="CreateProject">
                     <i class="bi bi-folder-plus me-2"></i> Create Project
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Action"].ToString() == "ProjectReports" ? "active" : "")"
-                   asp-area="" asp-controller="Dashboard" asp-action="ProjectReports">
+                   asp-area="" asp-controller="Report" asp-action="ProjectReports">
                     <i class="bi bi-clipboard-data-fill me-2"></i> Project Reports
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Action"].ToString() == "UserReports" ? "active" : "")"
-                   asp-area="" asp-controller="Dashboard" asp-action="UserReports">
+                   asp-area="" asp-controller="Report" asp-action="UserReports">
                     <i class="bi bi-file-earmark-person-fill me-2"></i> User Reports
                 </a>
             </li>

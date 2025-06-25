@@ -1,0 +1,110 @@
+﻿@model IEnumerable<StackFlow.ViewModels.ProjectReportViewModel>
+
+@{
+    ViewData["Title"] = "Project Reports";
+}
+
+<div class="card shadow-lg border-0 rounded-4 p-4 mt-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <h2 class="card-title mb-0 fw-bold text-primary display-6">
+            <i class="bi bi-clipboard-data-fill me-2"></i> Project Reports
+        </h2>
+        <a asp-action="Index" asp-controller="Dashboard" class="btn btn-outline-secondary rounded-pill shadow-sm animate-btn">
+            <i class="bi bi-arrow-left-circle me-1"></i> Back to Dashboard
+        </a>
+    </div>
+    <hr class="mb-4" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info rounded-4 shadow-sm" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> No projects available for reporting.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive rounded-4 shadow-sm">
+            <table class="table table-hover table-bordered mb-0">
+                <thead class="table-primary text-white">
+                    <tr>
+                        <th scope="col">Project Name</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Total Tickets</th> @* Reverted text *@
+                        <th scope="col">To Do</th>
+                        <th scope="col">In Progress</th>
+                        <th scope="col">In Review</th>
+                        <th scope="col">Completed</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var report in Model)
+                    {
+                        <tr>
+                            <td>@report.Project.ProjectName</td>
+                            <td>
+                                <span class="badge rounded-pill
+                                    @(report.Project.ProjectStatus == "Active" ? "bg-success" :
+                                      report.Project.ProjectStatus == "Completed" ? "bg-primary" : "bg-warning")">
+                                    @report.Project.ProjectStatus
+                                </span>
+                            </td>
+                            <td>@report.TotalTickets</td>
+                            <td>@report.ToDoTickets</td>
+                            <td>@report.InProgressTickets</td>
+                            <td>@report.InReviewTickets</td>
+                            <td>@report.CompletedTickets</td>
+                            <td>
+                                <a asp-action="ProjectDetails" asp-controller="Project" asp-route-id="@report.Project.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                @* Optional: Edit project button from here for Admin *@
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="EditProject" asp-controller="Project" asp-route-id="@report.Project.Id" class="btn btn-sm btn-outline-warning rounded-pill ms-2">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+@section Styles {
+    <style>
+        .animate-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+            .animate-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            }
+    </style>
+}

@@ -94,24 +94,17 @@ namespace StackFlow.Controllers
         {
             return View();
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(string username, string email, string password, string confirmPassword) // Added confirmPassword
+        public async Task<IActionResult> Register(string username, string email, string password)
         {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(confirmPassword))
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
                 ViewData["RegistrationError"] = "All fields are required.";
                 return View();
             }
 
-            // New: Server-side password confirmation check
-            if (password != confirmPassword)
-            {
-                ViewData["RegistrationError"] = "Password and confirmation password do not match.";
-                return View();
-            }
-
-            // ... rest of your existing validation and user creation logic ...
             // Basic email format validation
             if (!email.EndsWith("@omnitak.com"))
             {
@@ -138,6 +131,8 @@ namespace StackFlow.Controllers
             var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "Developer");
             if (defaultRole == null)
             {
+                // Fallback if 'Developer' role isn't seeded, or create it if not found
+                // For a robust system, ensure roles are seeded during app startup/migration
                 ViewData["RegistrationError"] = "Default role 'Developer' not found. Please contact support.";
                 return View();
             }

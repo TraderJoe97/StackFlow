@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Data.SqlClient; // Keeping this from your provided code, though not explicitly used for connection string parsing here
 using Microsoft.EntityFrameworkCore;
 using StackFlow.Data;
-using StackFlow.Hubs; // Add this using directive for your SignalR Hub
+using StackFlow.Hubs;
+// Removed: using Microsoft.AspNetCore.Identity;
+// Removed: using StackFlow.Models; // Models are implicitly used by DbContext, no direct 'using' needed here unless explicitly accessing models
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,60 +25,63 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         });
 });
 
-// Configure authentication using Cookie Authentication
+// Configure custom authentication using Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/AccessDenied";
-        // Configure cookie expiration to 1 hour
-        options.ExpireTimeSpan = TimeSpan.FromHours(1);
+        // Optionally, set the sliding expiration and expiration time
         options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // E.g., 30 minutes
     });
+
+// Add Authorization services
+builder.Services.AddAuthorization(); // Important to add this explicitly for authorization to work
+
 // Add SignalR services
 builder.Services.AddSignalR();
 
 
-    var app = builder.Build();
+var app = builder.Build();
 
-    // Apply migrations automatically at startup, with basic error handling
-    using (var scope = app.Services.CreateScope())
+// Apply migrations automatically at startup, with basic error handling
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        try
-        {
-            db.Database.Migrate();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Database migration failed: " + ex.Message);
-            // Optionally log this or notify via monitoring tool
-        }
+        db.Database.Migrate();
     }
-
-    // Configure the HTTP request pipeline.
-    if (!app.Environment.IsDevelopment())
+    catch (Exception ex)
     {
-        app.UseExceptionHandler("/Home/Error");
-        app.UseHsts();
+        Console.WriteLine("Database migration failed: " + ex.Message);
     }
+}
 
-    app.UseHttpsRedirection();
-    app.UseStaticFiles();
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
 
-    app.UseRouting();
+app.UseHttpsRedirection();
+app.UseStaticFiles();
 
-    app.UseAuthentication();
-    app.UseAuthorization();
+app.UseRouting();
 
-    // Map SignalR Hubs
-    app.MapHub<DashboardHub>("/dashboardHub"); // Maps the DashboardHub to the URL /dashboardHub
+app.UseAuthentication(); // Must be before UseAuthorization
+app.UseAuthorization();  // Must be after UseAuthentication
 
-    // Map Controller routes (keeping your provided default route)
-    // The default route is now Dashboard/Index to land authenticated users directly on the dashboard.
-    app.MapControllerRoute(
-        name: "default",
-        pattern: "{controller=Dashboard}/{action=Index}/{id?}"); // Changed default controller to Dashboard and action to Index
+// Map SignalR Hubs
+app.MapHub<DashboardHub>("/dashboardHub");
 
-    app.Run();
+// Map Controller routes (keeping your provided default route)
+// The default controller is now 'Account' for login/register flow
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Account}/{action=Login}/{id?}");
+
+app.Run();

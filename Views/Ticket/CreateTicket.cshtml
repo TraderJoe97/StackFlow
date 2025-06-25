@@ -1,12 +1,13 @@
 @model StackFlow.Models.Ticket 
+@* Model should be Ticket *@
 
 @{
-    ViewData["Title"] = "Create New Ticket"; 
+    ViewData["Title"] = "CreateTicket";
 }
 
 <div class="card shadow-lg border-0 rounded-4 p-4 mt-4 mb-4">
     <h2 class="card-title text-center mb-4 fw-bold text-primary display-6">
-        <i class="bi bi-journal-plus me-2"></i> Create New Ticket  
+        <i class="bi bi-journal-plus me-2"></i> Create New Ticket
     </h2>
     <hr class="mb-4" />
 
@@ -27,18 +28,19 @@
 
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
-            <form asp-action="CreateTicket" method="post" class="needs-validation" novalidate> 
+            <form asp-controller="Ticket" asp-action="CreateTicket" method="post" class="needs-validation" novalidate> @* Updated asp-controller and asp-action *@
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <div class="mb-3">
-                    <label asp-for="Title" class="form-label fw-semibold">Ticket Title <span class="text-danger">*</span></label>
-                    <input asp-for="Title" class="form-control form-control-lg rounded-pill" placeholder="e.g., Implement user authentication" required /> 
+                    <label asp-for="Title" class="form-label fw-semibold">Ticket Title <span class="text-danger">*</span></label> @* Reverted property name *@
+                    <input asp-for="Title" class="form-control form-control-lg rounded-pill" placeholder="e.g., Implement user authentication" required /> @* Reverted property name *@
+                    <span asp-validation-for="Title" class="text-danger"></span> @* Reverted property name *@
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="Description" class="form-label fw-semibold">Description</label> 
-                    <textarea asp-for="Description" class="form-control rounded-4" rows="6" placeholder="Detailed description of the ticket..."></textarea> 
-                    <span asp-validation-for="Description" class="text-danger"></span> 
+                    <label asp-for="Description" class="form-label fw-semibold">Description</label> @* Reverted property name *@
+                    <textarea asp-for="Description" class="form-control rounded-4" rows="6" placeholder="Detailed description of the ticket..."></textarea> @* Reverted property name *@
+                    <span asp-validation-for="Description" class="text-danger"></span> @* Reverted property name *@
                 </div>
 
                 <div class="mb-3">
@@ -59,32 +61,32 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label asp-for="Status" class="form-label fw-semibold">Status <span class="text-danger">*</span></label> 
-                        <select asp-for="Status" class="form-select form-select-lg rounded-pill" asp-items="ViewBag.TicketStatuses" required> 
+                        <label asp-for="Status" class="form-label fw-semibold">Status <span class="text-danger">*</span></label> @* Reverted property name *@
+                        <select asp-for="Status" class="form-select form-select-lg rounded-pill" asp-items="ViewBag.TicketStatuses" required> @* Reverted ViewBag name *@
                             <option value="">-- Select Status --</option>
                         </select>
-                        <span asp-validation-for="Status" class="text-danger"></span> 
+                        <span asp-validation-for="Status" class="text-danger"></span> @* Reverted property name *@
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label asp-for="Priority" class="form-label fw-semibold">Priority <span class="text-danger">*</span></label> 
-                        <select asp-for="Priority" class="form-select form-select-lg rounded-pill" asp-items="ViewBag.TicketPriorities" required> 
+                        <label asp-for="Priority" class="form-label fw-semibold">Priority <span class="text-danger">*</span></label> @* Reverted property name *@
+                        <select asp-for="Priority" class="form-select form-select-lg rounded-pill" asp-items="ViewBag.TicketPriorities" required> @* Reverted ViewBag name *@
                             <option value="">-- Select Priority --</option>
                         </select>
-                        <span asp-validation-for="Priority" class="text-danger"></span> 
+                        <span asp-validation-for="Priority" class="text-danger"></span> @* Reverted property name *@
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label asp-for="DueDate" class="form-label fw-semibold">Due Date</label> 
-                    <input asp-for="DueDate" type="date" class="form-control rounded-pill" />
-                    <span asp-validation-for="DueDate" class="text-danger"></span> 
+                    <label asp-for="DueDate" class="form-label fw-semibold">Due Date</label> @* Reverted property name *@
+                    <input asp-for="DueDate" type="date" class="form-control rounded-pill" /> @* Reverted property name *@
+                    <span asp-validation-for="DueDate" class="text-danger"></span> @* Reverted property name *@
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
                     <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm animate-btn">
-                        <i class="bi bi-check-circle-fill me-2"></i> Create Ticket 
+                        <i class="bi bi-check-circle-fill me-2"></i> Create Ticket @* Reverted text *@
                     </button>
-                    <a asp-action="Index" class="btn btn-outline-secondary btn-lg rounded-pill shadow-sm animate-btn">
+                    <a asp-action="Index" asp-controller="Dashboard" class="btn btn-outline-secondary btn-lg rounded-pill shadow-sm animate-btn">
                         <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
                     </a>
                 </div>
