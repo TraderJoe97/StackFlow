@@ -1,0 +1,38 @@
+@model IEnumerable<StackFlow.Models.Project> @* This partial will receive a list of projects *@
+
+<h3 class="fw-bold text-secondary mb-3">All Projects Overview</h3>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5" id="projectsOverviewContainer">
+    @if (!Model.Any())
+    {
+        <div class="col-12" id="noProjectsRow">
+            <div class="alert alert-info rounded-4 shadow-sm" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i> No projects have been created yet.
+            </div>
+        </div>
+    }
+    else
+    {
+        @foreach (var project in Model)
+        {
+            <div class="col" id="project-card-@project.Id">
+                <div class="card h-100 shadow-sm border-0 rounded-4">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-primary">@project.ProjectName</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Status: @project.ProjectStatus</h6>
+                        <p class="card-text text-truncate">@project.ProjectDescription</p>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Created By:</strong> @project.CreatedBy?.Username</li>
+                            <li><strong>Start Date:</strong> @project.ProjectStartDate?.ToShortDateString()</li>
+                            <li><strong>End Date:</strong> @(project.ProjectEndDate?.ToShortDateString() ?? "N/A")</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 d-flex justify-content-end gap-2">
+                        <a asp-action="ProjectDetails" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

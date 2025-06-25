@@ -1,3 +1,4 @@
+@using System.Security.Claims;
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,66 +18,66 @@
     @RenderSection("Styles", required: false)
 </head>
 <body data-bs-theme="light">
-    @* Main application header *@
-    <div class="app-header border-bottom shadow-sm">
-        <div class="container-fluid d-flex align-items-center py-2">
-            <!-- Toggler for mobile sidebar - stays in header for mobile access -->
-            <button class="btn btn-outline-secondary d-lg-none me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" aria-controls="offcanvasSidebar" aria-label="Toggle navigation">
-                <i class="bi bi-list"></i>
+    @* Main application header - now fixed at the top *@
+        <div class="app-header border-bottom shadow-sm">
+            <div class="container-fluid d-flex align-items-center py-2">
+                <!-- Toggler for mobile sidebar - stays in header for mobile access -->
+                <button class="btn btn-outline-secondary d-lg-none me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" aria-controls="offcanvasSidebar" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <a class="app-brand d-flex align-items-center me-auto" asp-area="" asp-controller="Dashboard" asp-action="Index">
+                    @* Logo image instead of text and icon *@
+    <img src="~/images/logo.png" alt="StackFlow Logo" class="app-logo me-2" onerror="this.onerror=null;this.src='https://placehold.co/40x40/cccccc/000000?text=Logo';" />
+    <span class="fw-bold fs-4">StackFlow</span>
+    </a>
+
+    <ul class="navbar-nav flex-row align-items-center ms-auto">
+        <!-- Dark Mode Toggle -->
+        <li class="nav-item me-2">
+            <button class="btn btn-link nav-link" id="darkModeToggle" aria-label="Toggle dark mode">
+                <i class="bi bi-moon-fill d-none" id="moonIcon"></i>
+                <i class="bi bi-sun-fill" id="sunIcon"></i>
             </button>
-
-            <a class="app-brand d-flex align-items-center me-auto" asp-area="" asp-controller="Dashboard" asp-action="Index">
-           
-                <img src="~/images/logo.png" alt="StackFlow Logo" class="app-logo me-2" onerror="this.onerror=null;this.src='https://placehold.co/40x40/cccccc/000000?text=Logo';" />
-                <span class="fw-bold fs-4">StackFlow</span>
-            </a>
-
-            <ul class="navbar-nav flex-row align-items-center ms-auto">
-                <!-- Dark Mode Toggle -->
-                <li class="nav-item me-2">
-                    <button class="btn btn-link nav-link" id="darkModeToggle" aria-label="Toggle dark mode">
-                        <i class="bi bi-moon-fill d-none" id="moonIcon"></i>
-                        <i class="bi bi-sun-fill" id="sunIcon"></i>
-                    </button>
-                </li>
-                @if (User.Identity.IsAuthenticated)
+        </li>
+        @if (User.Identity.IsAuthenticated)
                 {
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i> Hello, @User.Identity.Name!
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear-fill me-1"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="bi bi-box-arrow-right me-1"></i> Logout
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle me-1"></i> Hello, @User.Identity.Name!
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                <li><a class="dropdown-item" href="#"><i class="bi bi-gear-fill me-1"></i> Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                        <button type="submit" class="dropdown-item">
+                            <i class="bi bi-box-arrow-right me-1"></i> Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </li>
                 }
                 else
                 {
-                    <li class="nav-item">
-                        <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">
-                            <i class="bi bi-person-add me-1"></i> Register
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Login">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                        </a>
-                    </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">
+                <i class="bi bi-person-add me-1"></i> Register
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Login">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Login
+            </a>
+        </li>
                 }
-            </ul>
-        </div>
+    </ul>
+    </div>
     </div>
 
     @* The offcanvas sidebar definition (for mobile) remains here.
-       Its content is now directly included via the partial. *@
+        Its content is now directly included via the partial. *@
     <div class="offcanvas offcanvas-start sidebar-offcanvas" tabindex="-1" id="offcanvasSidebar" aria-labelledby="offcanvasSidebarLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="offcanvasSidebarLabel">
@@ -91,132 +92,169 @@
     </div>
 
     @* main-content now just wraps RenderBody for consistent padding and min-height *@
-    <div class="main-content">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+            <div class="main-content">
+                <main role="main" class="pb-3">
+                    @RenderBody()
+                </main>
+            </div>
 
-    <footer class="footer border-top text-muted">
-        <div class="container-fluid">
-            &copy; 2025 - StackFlow - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+            <footer class="footer border-top text-muted">
+                <div class="container-fluid">
+                    &copy; 2025 - StackFlow - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                </div>
+            </footer>
 
-    <!-- jQuery (Local) -->
-    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
-    <!-- Bootstrap Bundle with Popper (Local) -->
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
-    <!-- SignalR Client Library -->
-    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js" asp-append-version="true"></script>
+            <!-- jQuery (Local) -->
+            <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+            <!-- Bootstrap Bundle with Popper (Local) -->
+            <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+            <!-- SignalR Client Library -->
+            <script src="~/lib/microsoft/signalr/dist/browser/signalr.js" asp-append-version="true"></script>
 
-    <script>
-        // Dark mode toggle functionality
-        document.addEventListener('DOMContentLoaded', function () {
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const sunIcon = document.getElementById('sunIcon');
-            const moonIcon = document.getElementById('moonIcon');
-            const body = document.body;
+            <script>
+                // Store current user ID for client-side checks
+                let currentUserId = @(User.Identity.IsAuthenticated ? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) : "null");
 
-            // Function to set theme
-            function setTheme(theme) {
-                body.setAttribute('data-bs-theme', theme);
-                localStorage.setItem('theme', theme); // Save preference
-                if (theme === 'dark') {
-                    moonIcon.classList.remove('d-none');
-                    sunIcon.classList.add('d-none');
-                } else {
-                    sunIcon.classList.remove('d-none');
-                    moonIcon.classList.add('d-none');
-                }
-            }
+                // Dark mode toggle functionality
+                document.addEventListener('DOMContentLoaded', function () {
+                    const darkModeToggle = document.getElementById('darkModeToggle');
+                    const sunIcon = document.getElementById('sunIcon');
+                    const moonIcon = document.getElementById('moonIcon');
+                    const body = document.body;
 
-            // Check for saved theme preference or system preference
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    // Function to set theme
+                    function setTheme(theme) {
+                        body.setAttribute('data-bs-theme', theme);
+                        localStorage.setItem('theme', theme); // Save preference
+                        if (theme === 'dark') {
+                            moonIcon.classList.remove('d-none');
+                            sunIcon.classList.add('d-none');
+                        } else {
+                            sunIcon.classList.remove('d-none');
+                            moonIcon.classList.add('d-none');
+                        }
+                    }
 
-            if (savedTheme) {
-                setTheme(savedTheme);
-            } else if (prefersDark) {
-                setTheme('dark');
-            } else {
-                setTheme('light');
-            }
+                    // Check for saved theme preference or system preference
+                    const savedTheme = localStorage.getItem('theme');
+                    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-            // Toggle theme on button click
-            darkModeToggle.addEventListener('click', function () {
-                const currentTheme = body.getAttribute('data-bs-theme');
-                if (currentTheme === 'dark') {
-                    setTheme('light');
-                } else {
-                    setTheme('dark');
-                }
-            });
+                    if (savedTheme) {
+                        setTheme(savedTheme);
+                    } else if (prefersDark) {
+                        setTheme('dark');
+                    } else {
+                        setTheme('light');
+                    }
 
-            // SignalR Client Setup
-            const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/dashboardHub") // The URL mapped in Program.cs
-                .withAutomaticReconnect() // Optional: Automatically try to reconnect
-                .build();
+                    // Toggle theme on button click
+                    darkModeToggle.addEventListener('click', function () {
+                        const currentTheme = body.getAttribute('data-bs-theme');
+                        if (currentTheme === 'dark') {
+                            setTheme('light');
+                        } else {
+                            setTheme('dark');
+                        }
+                    });
 
-            // Receive Task Update notification
-            connection.on("ReceiveTaskUpdate", function (message) {
-                showToastNotification("Ticket Update", message, "info");
-            });
+                    // SignalR Client Setup
+                    const connection = new signalR.HubConnectionBuilder()
+                        .withUrl("/dashboardHub") // The URL mapped in Program.cs
+                        .withAutomaticReconnect() // Optional: Automatically try to reconnect
+                        .build();
 
-            // Receive Project Update notification
-            connection.on("ReceiveProjectUpdate", function (message) {
-                showToastNotification("Project Update", message, "success");
-            });
+                    // Function to reload the sidebar content via AJAX
+                    function reloadSidebar() {
+                        const sidebarContainer = document.querySelector('.sidebar-offcanvas .offcanvas-body');
+                        const desktopSidebarContainer = document.querySelector('.sidebar-offcanvas-desktop-fixed');
 
-            // Receive User Role Update notification (could prompt for re-login or refresh)
-            connection.on("ReceiveUserRoleUpdate", function (userId, newRole, message) {
-                showToastNotification("User Role Update", message, "warning");
-            });
+                        if (sidebarContainer) {
+                            fetch('/Dashboard/GetSidebarContent') // Action to fetch partial content
+                                .then(response => response.text())
+                                .then(html => {
+                                    sidebarContainer.innerHTML = html;
+                                    if (desktopSidebarContainer) {
+                                        desktopSidebarContainer.innerHTML = html; // Update desktop too
+                                    }
+                                    console.log("Sidebar reloaded due to user role change.");
+                                })
+                                .catch(error => console.error('Error reloading sidebar:', error));
+                        }
+                    }
 
-            // Start the SignalR connection
-            connection.start().then(function () {
-                console.log("SignalR Connected!");
-            }).catch(function (err) {
-                console.error(err.toString());
-            });
+                    // Receive Ticket Update notification (created, updated, deleted)
+                    connection.on("ReceiveTicketUpdate", function (action, ticketId, oldStatus = null) { // Expecting ID, and optionally oldStatus for insights
+                        console.log(`Ticket ${action} notification for ID: ${ticketId}.`);
+                        showToastNotification("Ticket Update", `A ticket was ${action}.`, "info");
+                        // Trigger a custom event to notify dashboard components (passing minimal data)
+                        document.dispatchEvent(new CustomEvent('ticketUpdate', { detail: { action, ticketId, oldStatus } }));
+                    });
 
-            // Function to show a simple Bootstrap Toast notification
-            function showToastNotification(title, bodyText, type) {
-                const toastContainer = document.getElementById('toastContainer');
-                if (!toastContainer) return; // Ensure container exists
+                    // Receive Project Update notification (created, updated, deleted)
+                    connection.on("ReceiveProjectUpdate", function (action, projectId) { // Expecting ID
+                        console.log(`Project ${action} notification for ID: ${projectId}.`);
+                        showToastNotification("Project Update", `A project was ${action}.`, "success");
+                        // Trigger a custom event to notify dashboard components (passing minimal data)
+                        document.dispatchEvent(new CustomEvent('projectUpdate', { detail: { action, projectId } }));
+                    });
 
-                const toastId = `toast-${Date.now()}`;
-                const toastHtml = `
-                    <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
-                        <div class="d-flex">
-                            <div class="toast-body">
-                                <strong>${title}:</strong> ${bodyText}
+                    // Receive User Update notification (e.g., role updated)
+                    connection.on("ReceiveUserUpdate", function (action, userId) { // Expecting ID
+                        console.log(`User ${action} notification for ID: ${userId}.`);
+                        showToastNotification("User Update", `A user's role was updated.`, "warning");
+
+                        // If the current user's role was updated, reload the sidebar
+                        if (currentUserId && userId == currentUserId) {
+                            console.log("Current user's role updated. Reloading sidebar.");
+                            reloadSidebar(); // Reload sidebar to reflect new permissions
+                        }
+                        // Also trigger a general user update event for any specific user-related lists
+                        document.dispatchEvent(new CustomEvent('userUpdate', { detail: { action, userId } }));
+                    });
+
+                    // Start the SignalR connection
+                    connection.start().then(function () {
+                        console.log("SignalR Connected!");
+                    }).catch(function (err) {
+                        console.error(err.toString());
+                    });
+
+                    // Function to show a simple Bootstrap Toast notification
+                    function showToastNotification(title, bodyText, type) {
+                        const toastContainer = document.getElementById('toastContainer');
+                        if (!toastContainer) return; // Ensure container exists
+
+                        const toastId = `toast-${Date.now()}`;
+                        const toastHtml = `
+                            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
+                                <div class="d-flex">
+                                    <div class="toast-body">
+                                        <strong>${title}:</strong> ${bodyText}
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>
                             </div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                    </div>
-                `;
+                        `;
 
-                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                const liveToast = new bootstrap.Toast(document.getElementById(toastId));
-                liveToast.show();
+                        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                        const liveToast = new bootstrap.Toast(document.getElementById(toastId));
+                        liveToast.show();
 
-                // Optional: Remove toast from DOM after it hides
-                document.getElementById(toastId).addEventListener('hidden.bs.toast', function () {
-                    this.remove();
+                        // Optional: Remove toast from DOM after it hides
+                        document.getElementById(toastId).addEventListener('hidden.bs.toast', function () {
+                            this.remove();
+                        });
+                    }
                 });
-            }
-        });
-    </script>
+            </script>
 
-    @RenderSection("Scripts", required: false)
+            @RenderSection("Scripts", required: false)
 
-    <!-- Toast Container for Notifications -->
-    <div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
-        <div id="toastContainer" class="toast-container">
-            <!-- Toasts will be appended here -->
-        </div>
-    </div>
-</body>
-</html>
+            <!-- Toast Container for Notifications -->
+            <div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+                <div id="toastContainer" class="toast-container">
+                    <!-- Toasts will be appended here -->
+                </div>
+            </div>
+        </body>
+        </html>

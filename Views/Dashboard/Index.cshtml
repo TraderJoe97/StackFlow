@@ -5,39 +5,39 @@
 }
 
 <div class="container-fluid">
-    @* Use container-fluid for full width *
+    @* Use container-fluid for full width *@
     <div class="row">
         @* Desktop Fixed Sidebar Column *@
-    <div class="col-lg-3 d-none d-lg-block">
-        <div class="sidebar-offcanvas-desktop-fixed">
-            @* Apply the desktop fixed styling here *@
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="sidebar-offcanvas-desktop-fixed">
+                @* Apply the desktop fixed styling here *@
                 @* Render the sidebar partial directly inside the desktop fixed sidebar container *@
-            <partial name="_SidebarPartial" />
+                <partial name="_SidebarPartial" />
+            </div>
         </div>
-    </div>
-    <div class="col-lg-9 main-content-with-sidebar">
-        @* Main content area, takes remaining space on large screens, new class for margin *@
+        <div class="col-lg-9 main-content-with-sidebar">
+            @* Main content area, takes remaining space on large screens, new class for margin *@
 
-            <h1 class="display-4 fw-bold text-primary mb-4">Welcome, @Model.Username!</h1>
+                <h1 class="display-4 fw-bold text-primary mb-4">Welcome, @Model.Username!</h1>
 
-            @if (TempData["SuccessMessage"] != null)
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @* Quick Insights for Admins *@
+            @if (User.IsInRole("Admin"))
             {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-x-circle-fill me-2"></i>@TempData["ErrorMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            @* Quick Insights for Admins *@
-        @if (User.IsInRole("Admin"))
-        {
             <h3 class="fw-bold text-secondary mb-3">Quick Insights</h3>
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
                 <div class="col">
@@ -77,20 +77,20 @@
                     </div>
                 </div>
             </div>
-        }
+            }
 
-        <h3 class="fw-bold text-secondary mb-3">My Assigned Tickets</h3>
-        @if (!Model.AssignedToMeTickets.Any())
-        {
+            <h3 class="fw-bold text-secondary mb-3">My Assigned Tickets</h3>
+            @if (!Model.AssignedToMeTickets.Any())
+            {
             <div class="alert alert-info rounded-4 shadow-sm" role="alert">
                 <i class="bi bi-info-circle-fill me-2"></i> You currently have no tickets assigned to you. Great job!
             </div>
-        }
-        else
-        {
+            }
+            else
+            {
             <div class="table-responsive rounded-4 shadow-sm mb-5">
                 <table class="table table-hover table-bordered mb-0">
-                    <thead class="table-primary text-black">
+                    <thead class="table-primary text-white">
                         <tr>
                             <th scope="col">Title</th>
                             <th scope="col">Project</th>
@@ -102,74 +102,74 @@
                     </thead>
                     <tbody>
                         @foreach (var ticket in Model.AssignedToMeTickets)
-                        {
-                            <tr>
-                                <td>@ticket.Title</td>
-                                <td>@ticket.Project?.ProjectName</td>
-                                <td>
-                                    <span class="badge rounded-pill
-                                                    @(ticket.Status == "To Do" ? "bg-secondary" :
-                                                                                        ticket.Status == "In Progress" ? "bg-info" :
-                                                                                        ticket.Status == "In Review" ? "bg-warning" : "bg-success")">
-                                                                                                                                                 @ticket.Status
-                                                                                                                                             </span>
-                                                                                                                                         </td>
-                                                                                                                                         <td>
-                                                                                                                                             <span class="badge rounded-pill
-                                                    @(ticket.Priority == "High" ? "bg-danger" :
-                                                                                        ticket.Priority == "Medium" ? "bg-secondary" : "bg-primary")">
-                                @ticket.Priority
-                            </span>
-                        </td>
-                        <td>@(ticket.DueDate?.ToShortDateString() ?? "N/A")</td>
-                        <td>
-                            <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-primary rounded-pill">
-                                <i class="bi bi-eye"></i> View
-                            </a>
-                        </td>
-                    </tr>
-                                        }
+                            {
+                        <tr>
+                            <td>@ticket.Title</td>
+                            <td>@ticket.Project?.ProjectName</td>
+                            <td>
+                                <span class="badge rounded-pill
+                                            @(ticket.Status == "To Do" ? "bg-secondary" :
+                                              ticket.Status == "In Progress" ? "bg-info" :
+                                              ticket.Status == "In Review" ? "bg-warning" : "bg-success")">
+                                    @ticket.Status
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill
+                                            @(ticket.Priority == "High" ? "bg-danger" :
+                                              ticket.Priority == "Medium" ? "bg-secondary" : "bg-primary")">
+                                    @ticket.Priority
+                                </span>
+                            </td>
+                            <td>@(ticket.DueDate?.ToShortDateString() ?? "N/A")</td>
+                            <td>
+                                <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                            }
                     </tbody>
                 </table>
             </div>
-        }
+            }
 
-        <h3 class="fw-bold text-secondary mb-3">All Projects Overview</h3>
-        @if (!Model.Projects.Any())
-        {
+            <h3 class="fw-bold text-secondary mb-3">All Projects Overview</h3>
+            @if (!Model.Projects.Any())
+            {
             <div class="alert alert-info rounded-4 shadow-sm" role="alert">
                 <i class="bi bi-info-circle-fill me-2"></i> No projects have been created yet.
             </div>
-        }
-        else
-        {
+            }
+            else
+            {
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
                 @foreach (var project in Model.Projects)
-                {
-                    <div class="col">
-                        <div class="card h-100 shadow-sm border-0 rounded-4">
-                            <div class="card-body">
-                                <h5 class="card-title fw-bold text-primary">@project.ProjectName</h5>
-                                <h6 class="card-subtitle mb-2 text-muted">Status: @project.ProjectStatus</h6>
-                                <p class="card-text text-truncate">@project.ProjectDescription</p>
-                                <ul class="list-unstyled mb-0">
-                                    <li><strong>Created By:</strong> @project.CreatedBy?.Username</li>
-                                    <li><strong>Start Date:</strong> @project.ProjectStartDate?.ToShortDateString()</li>
-                                    <li><strong>End Date:</strong> @(project.ProjectEndDate?.ToShortDateString() ?? "N/A")</li>
-                                </ul>
-                            </div>
-                            <div class="card-footer bg-transparent border-top-0 d-flex justify-content-end gap-2">
-                                @* Link to Project Details *@
-                                <a asp-action="ProjectDetails" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary rounded-pill">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                            </div>
+                    {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-4">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary">@project.ProjectName</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">Status: @project.ProjectStatus</h6>
+                            <p class="card-text text-truncate">@project.ProjectDescription</p>
+                            <ul class="list-unstyled mb-0">
+                                <li><strong>Created By:</strong> @project.CreatedBy?.Username</li>
+                                <li><strong>Start Date:</strong> @project.ProjectStartDate?.ToShortDateString()</li>
+                                <li><strong>End Date:</strong> @(project.ProjectEndDate?.ToShortDateString() ?? "N/A")</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0 d-flex justify-content-end gap-2">
+                            @* Link to Project Details *@
+                            <a asp-action="ProjectDetails" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="bi bi-eye"></i> View
+                            </a>
                         </div>
                     </div>
-                }
+                </div>
+                    }
             </div>
-        }
+            }
 
+        </div>
     </div>
-</div>
 </div>

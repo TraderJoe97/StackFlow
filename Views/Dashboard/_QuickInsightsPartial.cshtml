@@ -1,0 +1,45 @@
+@model StackFlow.ViewModels.DashboardViewModel
+
+@* Quick Insights for Admins - This partial should only be rendered if user is Admin *@
+@if (User.IsInRole("Admin"))
+{
+<h3 class="fw-bold text-secondary mb-3">Quick Insights</h3>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5" id="quickInsightsContainer">
+    <div class="col" id="completedTicketsInsight">
+        <div class="card h-100 shadow-sm border-0 rounded-4 p-3 bg-primary text-white bg-gradient-primary">
+            <div class="card-body">
+                <i class="bi bi-check-circle-fill display-5 mb-2"></i>
+                <h5 class="card-title fw-bold">Completed Tickets</h5>
+                <p class="card-text display-6 fw-bold" data-insight-type="completed">@Model.CompletedTickets.Count</p>
+            </div>
+        </div>
+    </div>
+    <div class="col" id="inProgressTicketsInsight">
+        <div class="card h-100 shadow-sm border-0 rounded-4 p-3 bg-info text-white bg-gradient-info">
+            <div class="card-body">
+                <i class="bi bi-hourglass-split display-5 mb-2"></i>
+                <h5 class="card-title fw-bold">In Progress Tickets</h5>
+                <p class="card-text display-6 fw-bold" data-insight-type="inProgress">@Model.InProgressTickets.Count</p>
+            </div>
+        </div>
+    </div>
+    <div class="col" id="toDoTicketsInsight">
+        <div class="card h-100 shadow-sm border-0 rounded-4 p-3 bg-secondary text-white bg-gradient-secondary">
+            <div class="card-body">
+                <i class="bi bi-list-task display-5 mb-2"></i>
+                <h5 class="card-title fw-bold">To Do Tickets</h5>
+                <p class="card-text display-6 fw-bold" data-insight-type="toDo">@Model.ToDoTickets.Count</p>
+            </div>
+        </div>
+    </div>
+    <div class="col" id="inReviewTicketsInsight">
+        <div class="card h-100 shadow-sm border-0 rounded-4 p-3 bg-warning text-dark bg-gradient-warning">
+            <div class="card-body">
+                <i class="bi bi-eye display-5 mb-2"></i>
+                <h5 class="card-title fw-bold">In Review Tickets</h5>
+                <p class="card-text display-6 fw-bold" data-insight-type="inReview">@Model.InReviewTickets.Count</p>
+            </div>
+        </div>
+    </div>
+</div>
+}

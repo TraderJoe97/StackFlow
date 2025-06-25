@@ -49,9 +49,9 @@ namespace StackFlow.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Fetch all tickets, eager loading related Project, AssignedTo, and CreatedBy users
+            // Fetch all tickets for insights and assigned tickets table
             var allTickets = await _context.Tickets
-                                         .Include(t => t.Project)
+                                         .Include(t => t.Project) // Needed for AssignedToMeTickets display
                                          .Include(t => t.AssignedTo)
                                          .Include(t => t.CreatedBy)
                                          .ToListAsync();
@@ -74,6 +74,61 @@ namespace StackFlow.Controllers
             };
 
             return View(viewModel);
+        }
+
+        /// <summary>
+        /// Returns the HTML content for the Quick Insights section.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetQuickInsights()
+        {
+            // Re-fetch data needed for insights
+            var allTickets = await _context.Tickets.ToListAsync();
+
+            var viewModel = new DashboardViewModel
+            {
+                ToDoTickets = allTickets.Where(t => t.Status == "To Do").ToList(),
+                InProgressTickets = allTickets.Where(t => t.Status == "In Progress").ToList(),
+                InReviewTickets = allTickets.Where(t => t.Status == "In Review").ToList(),
+                CompletedTickets = allTickets.Where(t => t.Status == "Done").ToList()
+            };
+            return PartialView("_QuickInsightsPartial", viewModel);
+        }
+
+        /// <summary>
+        /// Returns the HTML content for the "My Assigned Tickets" table.
+        /// </summary>
+        /// <param name="userId">The ID of the user whose tickets to fetch.</param>
+        [HttpGet]
+        public async Task<IActionResult> GetAssignedTicketsTable(int userId)
+        {
+            var assignedTickets = await _context.Tickets
+                                             .Include(t => t.Project)
+                                             .Where(t => t.AssignedToUserId == userId)
+                                             .ToListAsync();
+            return PartialView("_AssignedTicketsTablePartial", assignedTickets);
+        }
+
+        /// <summary>
+        /// Returns the HTML content for the "All Projects Overview" section.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetProjectsOverview()
+        {
+            var projects = await _context.Projects
+                                        .Include(p => p.CreatedBy)
+                                        .ToListAsync();
+            return PartialView("_ProjectsOverviewPartial", projects);
+        }
+
+        /// <summary>
+        /// Retrieves the HTML content for the sidebar navigation.
+        /// Used for AJAX updates when user roles change.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetSidebarContent()
+        {
+            return PartialView("_SidebarPartial");
         }
 
         /// <summary>
@@ -127,7 +182,8 @@ namespace StackFlow.Controllers
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' created successfully!";
 
-                    await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was created by {User.Identity.Name}.");
+                    // Send minimal data: action and ticket ID
+                    await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", "created", ticket.Id);
 
                     return RedirectToAction(nameof(Index));
                 }
@@ -201,7 +257,8 @@ namespace StackFlow.Controllers
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = $"Project '{project.ProjectName}' created successfully!";
 
-                    await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", $"Project '{project.ProjectName}' was created by {User.Identity.Name}.");
+                    // Send minimal data: action and project ID
+                    await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", "created", project.Id);
 
                     return RedirectToAction(nameof(Index));
                 }
@@ -319,7 +376,7 @@ namespace StackFlow.Controllers
                 return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
             }
 
-            string oldStatus = ticket.Status;
+            string oldStatus = ticket.Status; // Store old status to pass with notification
             ticket.Status = newStatus;
             if (newStatus == "Done" && !ticket.CompletedAt.HasValue)
             {
@@ -336,7 +393,8 @@ namespace StackFlow.Controllers
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' status updated to '{newStatus}' successfully!";
 
-                await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' status changed from '{oldStatus}' to '{newStatus}' by {User.Identity.Name}.");
+                // Send minimal data: action and ticket ID
+                await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", "updated", ticket.Id, oldStatus); // Pass old status too for insights refresh
 
             }
             catch (Exception ex)
@@ -389,7 +447,8 @@ namespace StackFlow.Controllers
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Comment added successfully!";
-            await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"New comment on ticket '{ticket.Title}' by {User.Identity.Name}.");
+            // Comments update isn't on dashboard. Simple notification is fine.
+            await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", "commented", ticket.Id); // Notify that a comment was added
 
             return RedirectToAction(nameof(TicketDetails), new { id = ticketId });
         }
@@ -460,7 +519,8 @@ namespace StackFlow.Controllers
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' updated successfully!";
 
-                    await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was updated by {User.Identity.Name}.");
+                    // Send minimal data: action and ticket ID
+                    await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", "updated", ticket.Id, originalTicket.Status); // Pass old status
 
                 }
                 catch (DbUpdateConcurrencyException)
@@ -519,12 +579,16 @@ namespace StackFlow.Controllers
                 return NotFound();
             }
 
+            string ticketTitle = ticket.Title;
+            string oldStatus = ticket.Status; // Store old status for insights update
+
             try
             {
                 _context.Tickets.Remove(ticket);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Ticket '{ticket.Title}' deleted successfully.";
-                await _hubContext.Clients.All.SendAsync("ReceiveTaskUpdate", $"Ticket '{ticket.Title}' was deleted by {User.Identity.Name}.");
+                TempData["SuccessMessage"] = $"Ticket '{ticketTitle}' deleted successfully.";
+                // Send minimal data: action and ticket ID
+                await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", "deleted", id, oldStatus);
             }
             catch (Exception ex)
             {
@@ -575,14 +639,18 @@ namespace StackFlow.Controllers
                 return NotFound();
             }
 
+            string projectName = project.ProjectName;
+            int ticketCount = project.Tickets.Count;
+
             try
             {
                 // Remove associated tickets first if not configured for cascade delete in DB
                 _context.Tickets.RemoveRange(project.Tickets);
                 _context.Projects.Remove(project);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Project '{project.ProjectName}' and its {project.Tickets.Count} associated tickets deleted successfully.";
-                await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", $"Project '{project.ProjectName}' was deleted by {User.Identity.Name}.");
+                TempData["SuccessMessage"] = $"Project '{projectName}' and its {ticketCount} associated tickets deleted successfully.";
+                // Send minimal data: action and project ID
+                await _hubContext.Clients.All.SendAsync("ReceiveProjectUpdate", "deleted", id);
             }
             catch (Exception ex)
             {
@@ -696,7 +764,9 @@ namespace StackFlow.Controllers
                 _context.Update(userToUpdate);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = $"User '{userToUpdate.Username}' role updated from '{oldRoleTitle}' to '{newRole.Title}' successfully.";
-                await _hubContext.Clients.All.SendAsync("ReceiveUserRoleUpdate", userToUpdate.Id, newRole.Title, $"User '{userToUpdate.Username}' had their role changed to '{newRole.Title}' by {User.Identity.Name}.");
+
+                // Send minimal data: action and user ID
+                await _hubContext.Clients.All.SendAsync("ReceiveUserUpdate", "roleUpdated", userId);
             }
             catch (Exception ex)
             {
@@ -734,6 +804,9 @@ namespace StackFlow.Controllers
                 return RedirectToAction(nameof(UserReports));
             }
 
+            string username = userToDelete.Username;
+            int assignedTicketCount = userToDelete.AssignedTickets.Count;
+
             try
             {
                 // Get the current admin user (who is performing the deletion)
@@ -755,8 +828,9 @@ namespace StackFlow.Controllers
                 _context.Users.Remove(userToDelete);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"User '{userToDelete.Username}' deleted and their tickets reassigned to {adminUser.Username}.";
-                await _hubContext.Clients.All.SendAsync("ReceiveUserRoleUpdate", userToDelete.Id, "Deleted", $"User '{userToDelete.Username}' was deleted by {User.Identity.Name} and tickets reassigned.");
+                TempData["SuccessMessage"] = $"User '{username}' deleted and their tickets reassigned to {adminUser.Username}.";
+                // Send minimal data: action and user ID
+                await _hubContext.Clients.All.SendAsync("ReceiveUserUpdate", "deleted", id);
 
             }
             catch (Exception ex)

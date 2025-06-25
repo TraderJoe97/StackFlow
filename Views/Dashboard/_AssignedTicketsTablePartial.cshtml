@@ -1,0 +1,57 @@
+@model IEnumerable<StackFlow.Models.Ticket>
+    @* This partial will receive a list of tickets *@
+
+    <h3 class="fw-bold text-secondary mb-3">My Assigned Tickets</h3>
+    <div class="table-responsive rounded-4 shadow-sm mb-5">
+        <table class="table table-hover table-bordered mb-0" id="assignedTicketsTable">
+            <thead class="table-primary text-white">
+                <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col">Project</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Due Date</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+            {
+                <tr id="noAssignedTicketsRow">
+                    <td colspan="6" class="text-muted text-center py-3">No tickets assigned to you. Great job!</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var ticket in Model)
+                {
+                <tr id="ticket-row-@ticket.Id">
+                    <td>@ticket.Title</td>
+                    <td>@ticket.Project?.ProjectName</td>
+                    <td>
+                        <span class="badge rounded-pill
+                                @(ticket.Status == "To Do" ? "bg-secondary" :
+                                  ticket.Status == "In Progress" ? "bg-info" :
+                                  ticket.Status == "In Review" ? "bg-warning" : "bg-success")">
+                            @ticket.Status
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill
+                                @(ticket.Priority == "High" ? "bg-danger" :
+                                  ticket.Priority == "Medium" ? "bg-secondary" : "bg-primary")">
+                            @ticket.Priority
+                        </span>
+                    </td>
+                    <td>@(ticket.DueDate?.ToShortDateString() ?? "N/A")</td>
+                    <td>
+                        <a asp-action="TicketDetails" asp-route-id="@ticket.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </td>
+                </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
